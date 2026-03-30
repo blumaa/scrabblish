@@ -41,5 +41,5 @@ export const TILES_HU: TileDefinition[] = [
   { letter: 'Ű', points: 7, count: 1 },
   { letter: 'V', points: 3, count: 2 },
   { letter: 'Z', points: 4, count: 2 },
-  { letter: 'ZS', points: 4, count: 1 },
+  { letter: 'ZS', points: 8, count: 1 },
 ];
