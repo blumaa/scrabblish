@@ -1,17 +1,12 @@
+import { useNavigate } from 'react-router';
 import { BackButton } from '../atoms/BackButton';
 import { Card } from '../atoms/Card';
 import { Spinner } from '../atoms/Spinner';
-import type { PlayerStats, LanguageStat, GameHistoryItem } from '../../types/stats';
+import { useAuth } from '../../hooks/useAuth';
+import { useStats } from '../../hooks/useStats';
+import { useGameManager } from '../../hooks/useGameManager';
+import type { PlayerStats, GameHistoryItem } from '../../types/stats';
 import './StatsScreen.css';
-
-interface StatsScreenProps {
-  stats: PlayerStats | null;
-  languageStats: LanguageStat[];
-  gameHistory: GameHistoryItem[];
-  userId: string;
-  loading: boolean;
-  onBack: () => void;
-}
 
 function getWinRate(stats: PlayerStats): number {
   return stats.gamesPlayed > 0 ? Math.round((stats.wins / stats.gamesPlayed) * 100) : 0;
@@ -32,21 +27,38 @@ function formatDate(iso: string): string {
   const now = new Date();
   const diffMs = now.getTime() - d.getTime();
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
   if (diffDays === 0) return 'Today';
   if (diffDays === 1) return 'Yesterday';
   if (diffDays < 7) return `${diffDays}d ago`;
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
-export function StatsScreen({ stats, languageStats, gameHistory, userId, loading, onBack }: StatsScreenProps) {
+export function StatsScreen() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const userId = user?.id ?? '';
+  const { stats, languageStats, loading } = useStats(userId || null);
+  const { games } = useGameManager(userId || null);
+
+  const gameHistory: GameHistoryItem[] = games
+    .filter((g) => g.status === 'finished')
+    .map((g) => ({
+      id: g.id,
+      languages: g.languages,
+      myScore: g.myScore,
+      opponentScore: g.opponentScore,
+      opponentName: (g.player1Id === userId ? g.player2Name : g.player1Name) ?? 'Unknown',
+      winnerId: g.winnerId,
+      finishedAt: g.updatedAt,
+    }));
+
   const sorted = [...gameHistory].sort(
     (a, b) => new Date(b.finishedAt).getTime() - new Date(a.finishedAt).getTime(),
   );
 
   return (
     <div className="stats-container">
-      <BackButton onClick={onBack} />
+      <BackButton onClick={() => navigate('/')} />
 
       {loading && <Spinner size="lg" block />}
 
@@ -137,18 +149,14 @@ export function StatsScreen({ stats, languageStats, gameHistory, userId, loading
               const result = getGameResult(game, userId);
               return (
                 <div key={game.id} className="stats-game-row">
-                  <span className={`stats-game-result stats-game-result--${result}`}>
-                    {result}
-                  </span>
+                  <span className={`stats-game-result stats-game-result--${result}`}>{result}</span>
                   <div className="stats-game-info">
                     <div className="stats-game-opponent">vs {game.opponentName}</div>
                     <div className="stats-game-detail">
                       {game.languages.map((l) => l.toUpperCase()).join(' + ')} · {formatDate(game.finishedAt)}
                     </div>
                   </div>
-                  <div className="stats-game-scores">
-                    {game.myScore}–{game.opponentScore}
-                  </div>
+                  <div className="stats-game-scores">{game.myScore}–{game.opponentScore}</div>
                 </div>
               );
             })}

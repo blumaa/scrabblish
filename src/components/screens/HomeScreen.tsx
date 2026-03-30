@@ -1,58 +1,39 @@
 import { useState } from 'react';
-import type { User } from '@supabase/supabase-js';
+import { useNavigate, Link } from 'react-router';
 import { Avatar } from '../atoms/Avatar';
 import { Button } from '../atoms/Button';
 import { Card } from '../atoms/Card';
 import { Skeleton } from '../atoms/Skeleton';
 import { Spinner } from '../atoms/Spinner';
 import { FriendRow } from '../molecules/FriendRow';
-import type { GameSummary, Invitation } from '../../hooks/useGameManager';
-import type { Friend } from '../../hooks/useFriends';
+import { useAuth } from '../../hooks/useAuth';
+import { useProfile } from '../../hooks/useProfile';
+import { useGameManager } from '../../hooks/useGameManager';
+import { useFriends } from '../../hooks/useFriends';
 import './HomeScreen.css';
 
-interface HomeScreenProps {
-  user: User;
-  username: string;
-  avatarIcon: string | null;
-  friends: Friend[];
-  games: GameSummary[];
-  invitations: Invitation[];
-  loading: boolean;
-  onStartGame: (friendUserId: string) => void;
-  onAcceptInvitation: (gameId: string) => Promise<void>;
-  onDeclineInvitation: (gameId: string) => void;
-  onOpenGame: (gameId: string) => void;
-  onOpenProfile?: () => void;
-  onOpenStats?: () => void;
-}
+export function HomeScreen() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { profile } = useProfile(user?.id ?? null);
+  const { games, invitations, loading, acceptInvitation, declineInvitation } = useGameManager(user?.id ?? null);
+  const { friends } = useFriends(user?.id ?? null);
 
-export function HomeScreen({
-  user,
-  username: profileUsername,
-  avatarIcon,
-  friends,
-  games,
-  invitations,
-  loading,
-  onStartGame,
-  onAcceptInvitation,
-  onDeclineInvitation,
-  onOpenGame,
-  onOpenProfile,
-  onOpenStats,
-}: HomeScreenProps) {
-  const username = profileUsername || user.email?.split('@')[0] || 'player';
+  const username = profile?.username || user?.email?.split('@')[0] || 'player';
+  const avatarIcon = profile?.avatarUrl ?? null;
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
 
   const handleAccept = async (gameId: string) => {
     setAcceptingId(gameId);
-    await onAcceptInvitation(gameId);
+    const id = await acceptInvitation(gameId);
     setAcceptingId(null);
+    if (id) navigate(`/game/${id}`);
   };
 
-  const myTurnGames = games.filter((g) => g.status === 'active' && g.currentTurn === user.id);
-  const theirTurnGames = games.filter((g) => g.status === 'active' && g.currentTurn !== user.id);
-  const waitingGames = games.filter((g) => g.status === 'waiting' && g.player1Id === user.id);
+  const userId = user?.id ?? '';
+  const myTurnGames = games.filter((g) => g.status === 'active' && g.currentTurn === userId);
+  const theirTurnGames = games.filter((g) => g.status === 'active' && g.currentTurn !== userId);
+  const waitingGames = games.filter((g) => g.status === 'waiting' && g.player1Id === userId);
   const finishedGames = games.filter((g) => g.status === 'finished').slice(0, 5);
 
   return (
@@ -60,16 +41,14 @@ export function HomeScreen({
       <header className="home-header">
         <h1 className="home-title">Scrabblish</h1>
         <div className="home-header-actions">
-          {onOpenStats && (
-            <button className="home-stats-btn" onClick={onOpenStats} title="Stats">
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <rect x="2" y="10" width="4" height="8" rx="1" fill="currentColor" />
-                <rect x="8" y="6" width="4" height="12" rx="1" fill="currentColor" />
-                <rect x="14" y="2" width="4" height="16" rx="1" fill="currentColor" />
-              </svg>
-            </button>
-          )}
-          <Avatar name={username} icon={avatarIcon} size="md" onClick={onOpenProfile} />
+          <Link to="/stats" className="home-stats-btn" title="Stats">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <rect x="2" y="10" width="4" height="8" rx="1" fill="currentColor" />
+              <rect x="8" y="6" width="4" height="12" rx="1" fill="currentColor" />
+              <rect x="14" y="2" width="4" height="16" rx="1" fill="currentColor" />
+            </svg>
+          </Link>
+          <Avatar name={username} icon={avatarIcon} size="md" onClick={() => navigate('/profile')} />
         </div>
       </header>
 
@@ -81,7 +60,6 @@ export function HomeScreen({
         </div>
       )}
 
-      {/* Invitations */}
       {invitations.length > 0 && (
         <Card padding="sm" className="home-section">
           <h3 className="home-section-title">Invitations ({invitations.length})</h3>
@@ -95,26 +73,26 @@ export function HomeScreen({
                 <Button variant="primary" size="sm" onClick={() => handleAccept(inv.id)} disabled={acceptingId === inv.id}>
                   {acceptingId === inv.id ? <Spinner size="sm" /> : 'Accept'}
                 </Button>
-                <Button variant="ghost" size="sm" onClick={() => onDeclineInvitation(inv.id)}>✕</Button>
+                <Button variant="ghost" size="sm" onClick={() => declineInvitation(inv.id)}>✕</Button>
               </div>
             </div>
           ))}
         </Card>
       )}
 
-      {/* Your Turn */}
       {myTurnGames.length > 0 && (
         <Card padding="sm" className="home-section">
           <h3 className="home-section-title">Your Turn ({myTurnGames.length})</h3>
           {myTurnGames.map((game) => {
-            const opponentName = game.player1Id === user.id ? game.player2Name : game.player1Name;
+            const opponentName = game.player1Id === userId ? game.player2Name : game.player1Name;
             return (
-              <button key={game.id} className="home-game-row home-game-my-turn" onClick={() => onOpenGame(game.id)}>
+              <button key={game.id} className="home-game-row home-game-my-turn" onClick={() => navigate(`/game/${game.id}`)}>
                 <div className="home-game-player">
                   <Avatar name={opponentName ?? '?'} icon={game.opponentAvatarIcon} size="sm" />
                   <div className="home-game-info">
-                    <span className="home-game-opponent">{opponentName}</span>
-                    <span className="home-game-score">{game.myScore} - {game.opponentScore}</span>
+                    <span className="home-game-score">
+                      <span className="home-game-me">you</span> {game.myScore} - {game.opponentScore} <span className="home-game-them">{opponentName}</span>
+                    </span>
                   </div>
                 </div>
                 <span className="home-game-your-turn">Your turn</span>
@@ -124,29 +102,28 @@ export function HomeScreen({
         </Card>
       )}
 
-      {/* Their Turn */}
       {theirTurnGames.length > 0 && (
         <Card padding="sm" className="home-section">
           <h3 className="home-section-title">Their Turn ({theirTurnGames.length})</h3>
           {theirTurnGames.map((game) => {
-            const opponentName = game.player1Id === user.id ? game.player2Name : game.player1Name;
+            const opponentName = game.player1Id === userId ? game.player2Name : game.player1Name;
             return (
-            <button key={game.id} className="home-game-row" onClick={() => onOpenGame(game.id)}>
-              <div className="home-game-player">
-                <Avatar name={opponentName ?? '?'} icon={game.opponentAvatarIcon} size="sm" />
-                <div className="home-game-info">
-                  <span className="home-game-opponent">{opponentName}</span>
-                  <span className="home-game-score">{game.myScore} - {game.opponentScore}</span>
+              <button key={game.id} className="home-game-row" onClick={() => navigate(`/game/${game.id}`)}>
+                <div className="home-game-player">
+                  <Avatar name={opponentName ?? '?'} icon={game.opponentAvatarIcon} size="sm" />
+                  <div className="home-game-info">
+                    <span className="home-game-score">
+                      <span className="home-game-me">you</span> {game.myScore} - {game.opponentScore} <span className="home-game-them">{opponentName}</span>
+                    </span>
+                  </div>
                 </div>
-              </div>
-              <span className="home-game-their-turn">Waiting...</span>
-            </button>
+                <span className="home-game-their-turn">Waiting...</span>
+              </button>
             );
           })}
         </Card>
       )}
 
-      {/* Pending */}
       {waitingGames.length > 0 && (
         <Card padding="sm" className="home-section">
           <h3 className="home-section-title">Pending ({waitingGames.length})</h3>
@@ -159,23 +136,20 @@ export function HomeScreen({
         </Card>
       )}
 
-      {/* Recent Games */}
       {finishedGames.length > 0 && (
         <Card padding="sm" className="home-section">
           <h3 className="home-section-title">
             Recent Games
-            {onOpenStats && (
-              <button className="home-view-all" onClick={onOpenStats}>View All</button>
-            )}
+            <Link to="/stats" className="home-view-all">View All</Link>
           </h3>
           {finishedGames.map((game) => {
-            const result = game.winnerId === user.id ? 'W' : game.winnerId === null ? 'T' : 'L';
-            const opponent = game.player1Id === user.id ? game.player2Name : game.player1Name;
+            const result = game.winnerId === userId ? 'W' : game.winnerId === null ? 'T' : 'L';
+            const opponent = game.player1Id === userId ? game.player2Name : game.player1Name;
             return (
               <div key={game.id} className="home-game-row home-game-finished">
                 <span className={`home-game-result home-game-result--${result}`}>{result}</span>
                 <div className="home-game-info">
-                  <span className="home-game-opponent">vs @{opponent}</span>
+                  <span className="home-game-opponent">vs {opponent}</span>
                   <span className="home-game-score">{game.myScore} - {game.opponentScore}</span>
                 </div>
               </div>
@@ -184,26 +158,25 @@ export function HomeScreen({
         </Card>
       )}
 
-      {/* Friends */}
       <Card padding="sm" className="home-section">
         <h3 className="home-section-title">Friends</h3>
         {friends.length === 0 ? (
           <div className="home-empty-friends">
             <p>No friends yet</p>
-            <Button variant="primary" onClick={onOpenProfile}>Add Friends</Button>
+            <Button variant="primary" onClick={() => navigate('/profile')}>Add Friends</Button>
           </div>
         ) : (
           friends.map((friend) => (
             <FriendRow
               key={friend.userId}
               username={friend.username}
-              action={<Button variant="primary" size="sm" onClick={() => onStartGame(friend.userId)}>Play</Button>}
+              avatarIcon={friend.avatarUrl}
+              action={<Button variant="primary" size="sm" onClick={() => navigate(`/game/new/${friend.userId}`)}>Play</Button>}
             />
           ))
         )}
       </Card>
 
-      {/* Empty state */}
       {games.length === 0 && invitations.length === 0 && friends.length === 0 && !loading && (
         <Card className="home-empty-state">
           <div className="home-tile-icon">S</div>

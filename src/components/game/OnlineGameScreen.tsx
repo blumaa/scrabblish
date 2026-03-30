@@ -1,4 +1,5 @@
 import { useRef, useState, useMemo } from 'react';
+import { useParams, useNavigate } from 'react-router';
 import { Board } from '../board/Board';
 import { ScoreBar } from './ScoreBar';
 import { MoveControls } from './MoveControls';
@@ -10,17 +11,17 @@ import { Spinner } from '../atoms/Spinner';
 import { useDictionary } from '../../hooks/useDictionary';
 import { useOnlineGame } from '../../hooks/useOnlineGame';
 import { useGameInteraction } from '../../hooks/useGameInteraction';
+import { useAuth } from '../../hooks/useAuth';
+import { callEdgeFunction } from '../../lib/edge-client';
 import type { Tile, PlacedTile } from '../../types/game';
 import './GameScreen.css';
 
-interface OnlineGameScreenProps {
-  gameId: string;
-  userId: string;
-  callEdgeFunction: (name: string, body: Record<string, unknown>) => Promise<unknown>;
-  onBack: () => void;
-}
-
-export function OnlineGameScreen({ gameId, userId, callEdgeFunction, onBack }: OnlineGameScreenProps) {
+export function OnlineGameScreen() {
+  const { id: gameId } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const userId = user?.id ?? '';
+  const onBack = () => navigate('/');
   const {
     gameState: serverState,
     loading,
@@ -28,7 +29,7 @@ export function OnlineGameScreen({ gameId, userId, callEdgeFunction, onBack }: O
     myHand,
     submitMove: serverSubmitMove,
     exchangeTiles: serverExchangeTiles,
-  } = useOnlineGame(gameId, userId, callEdgeFunction);
+  } = useOnlineGame(gameId ?? '', userId, callEdgeFunction);
 
   const [pendingTiles, setPendingTiles] = useState<PlacedTile[]>([]);
   const [rackOrder, setRackOrder] = useState<string[]>([]);

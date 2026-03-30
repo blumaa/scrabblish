@@ -9,7 +9,19 @@ export function useNotifications(userId: string | null) {
     if ('Notification' in window) {
       setPermission(Notification.permission);
     }
-  }, []);
+    // Check if user already has a push token stored
+    if (userId) {
+      supabase
+        .from('push_tokens')
+        .select('token')
+        .eq('user_id', userId)
+        .eq('platform', 'web')
+        .limit(1)
+        .then(({ data }) => {
+          if (data && data.length > 0) setEnabled(true);
+        });
+    }
+  }, [userId]);
 
   const registerPush = useCallback(async () => {
     if (!userId || !('serviceWorker' in navigator) || !('PushManager' in window)) return false;

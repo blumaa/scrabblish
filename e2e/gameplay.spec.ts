@@ -66,7 +66,7 @@ async function placeTwoTilesAtCenter(page: Page) {
 
 test.describe('Scrabblish Gameplay', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/?mode=local');
+    await page.goto('/local');
     await page.waitForSelector('.board-svg', { timeout: 5000 });
     // Wait for dictionaries to load
     await page.waitForFunction(
@@ -749,7 +749,7 @@ test.describe('Scrabblish Gameplay', () => {
 
   test('dictionary loading indicator appears then disappears', async ({ page }) => {
     // Navigate fresh — catch the loading indicator before it disappears
-    await page.goto('/?mode=local');
+    await page.goto('/local');
     await page.waitForSelector('.board-svg', { timeout: 5000 });
 
     // Loading indicator might be visible briefly

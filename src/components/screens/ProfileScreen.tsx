@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate, Link } from 'react-router';
 import { Avatar } from '../atoms/Avatar';
 import { Button } from '../atoms/Button';
 import { Card } from '../atoms/Card';
@@ -6,42 +7,23 @@ import { Input } from '../atoms/Input';
 import { BackButton } from '../atoms/BackButton';
 import { FriendRow } from '../molecules/FriendRow';
 import { AVATAR_ICONS } from '../../lib/avatar-icons';
+import { useAuth } from '../../hooks/useAuth';
+import { useProfile } from '../../hooks/useProfile';
+import { useFriends } from '../../hooks/useFriends';
+import { useNotifications } from '../../hooks/useNotifications';
 import type { Friend } from '../../hooks/useFriends';
 import './ProfileScreen.css';
 
-interface ProfileScreenProps {
-  username: string;
-  avatarIcon: string | null;
-  onUpdateProfile: (updates: { username?: string; avatarUrl?: string }) => Promise<boolean>;
-  friends: Friend[];
-  onSearchUsers: (query: string) => Promise<Friend[]>;
-  onAddFriend: (userId: string) => Promise<boolean>;
-  onRemoveFriend: (friendshipId: string) => Promise<boolean>;
-  onStartGame: (friendUserId: string) => void;
-  onSignOut: () => void;
-  onBack: () => void;
-  onOpenStats?: () => void;
-  error: string | null;
-  notificationsEnabled: boolean;
-  onToggleNotifications: () => void;
-}
+export function ProfileScreen() {
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
+  const { profile, updateProfile } = useProfile(user?.id ?? null);
+  const { friends, error, searchUsers, addFriend, removeFriend } = useFriends(user?.id ?? null);
+  const { enabled: notificationsEnabled, registerPush, unregisterPush } = useNotifications(user?.id ?? null);
 
-export function ProfileScreen({
-  username,
-  avatarIcon,
-  onUpdateProfile,
-  friends,
-  onSearchUsers,
-  onAddFriend,
-  onRemoveFriend,
-  onStartGame,
-  onSignOut,
-  onBack,
-  onOpenStats,
-  error,
-  notificationsEnabled,
-  onToggleNotifications,
-}: ProfileScreenProps) {
+  const username = profile?.username ?? '';
+  const avatarIcon = profile?.avatarUrl ?? null;
+
   const [editing, setEditing] = useState(false);
   const [editUsername, setEditUsername] = useState(username);
   const [showIconPicker, setShowIconPicker] = useState(false);
@@ -56,26 +38,28 @@ export function ProfileScreen({
       return;
     }
     setSaveError(null);
-    const success = await onUpdateProfile({ username: editUsername });
-    if (success) {
-      setEditing(false);
-    } else {
-      setSaveError('Username may already be taken');
-    }
+    const success = await updateProfile({ username: editUsername });
+    if (success) setEditing(false);
+    else setSaveError('Username may already be taken');
   };
 
   const handleSearch = async () => {
     if (searchQuery.length < 2) return;
     setSearching(true);
-    const results = await onSearchUsers(searchQuery);
+    const results = await searchUsers(searchQuery);
     const friendIds = new Set(friends.map((f) => f.userId));
     setSearchResults(results.filter((r) => !friendIds.has(r.userId)));
     setSearching(false);
   };
 
+  const handleToggleNotifications = async () => {
+    if (notificationsEnabled) await unregisterPush();
+    else await registerPush();
+  };
+
   return (
     <div className="profile-container">
-      <BackButton onClick={onBack} />
+      <BackButton onClick={() => navigate('/')} />
 
       <Card className="profile-card">
         <Avatar
@@ -94,7 +78,7 @@ export function ProfileScreen({
                 key={entry.name}
                 className={`profile-icon-btn ${avatarIcon === entry.name ? 'profile-icon-btn--active' : ''}`}
                 onClick={async () => {
-                  await onUpdateProfile({ avatarUrl: entry.name });
+                  await updateProfile({ avatarUrl: entry.name });
                   setShowIconPicker(false);
                 }}
               >
@@ -104,7 +88,7 @@ export function ProfileScreen({
             <button
               className={`profile-icon-btn ${!avatarIcon ? 'profile-icon-btn--active' : ''}`}
               onClick={async () => {
-                await onUpdateProfile({ avatarUrl: '' });
+                await updateProfile({ avatarUrl: '' });
                 setShowIconPicker(false);
               }}
             >
@@ -137,28 +121,25 @@ export function ProfileScreen({
         )}
       </Card>
 
-      {onOpenStats && (
-        <Card padding="sm" className="profile-section profile-section--center">
-          <Button variant="secondary" onClick={onOpenStats}>View Stats</Button>
-        </Card>
-      )}
+      <Card padding="sm" className="profile-section profile-section--center">
+        <Link to="/stats"><Button variant="secondary">View Stats</Button></Link>
+      </Card>
 
       <Card padding="sm" className="profile-section">
         <h3 className="profile-section-title">Friends ({friends.length})</h3>
-
         {friends.map((friend) => (
           <FriendRow
             key={friend.id}
             username={friend.username}
+            avatarIcon={friend.avatarUrl}
             action={
               <>
-                <Button size="sm" onClick={() => onStartGame(friend.userId)}>Play</Button>
-                <Button size="sm" variant="danger" onClick={() => onRemoveFriend(friend.id)}>×</Button>
+                <Button size="sm" onClick={() => navigate(`/game/new/${friend.userId}`)}>Play</Button>
+                <Button size="sm" variant="danger" onClick={() => removeFriend(friend.id)}>×</Button>
               </>
             }
           />
         ))}
-
         {friends.length === 0 && (
           <p className="profile-empty">No friends yet. Search to add someone!</p>
         )}
@@ -178,14 +159,12 @@ export function ProfileScreen({
             {searching ? '...' : 'Search'}
           </Button>
         </div>
-
         {error && <p className="profile-error">{error}</p>}
-
         {searchResults.map((result) => (
           <FriendRow
             key={result.userId}
             username={result.username}
-            action={<Button size="sm" onClick={() => onAddFriend(result.userId)}>Add</Button>}
+            action={<Button size="sm" onClick={() => addFriend(result.userId)}>Add</Button>}
           />
         ))}
       </Card>
@@ -196,7 +175,7 @@ export function ProfileScreen({
           <span className="profile-setting-label">Push Notifications</span>
           <button
             className={`profile-toggle ${notificationsEnabled ? 'profile-toggle--on' : ''}`}
-            onClick={onToggleNotifications}
+            onClick={handleToggleNotifications}
           >
             {notificationsEnabled ? 'On' : 'Off'}
           </button>
@@ -204,7 +183,7 @@ export function ProfileScreen({
       </Card>
 
       <Card padding="sm" className="profile-section profile-section--center">
-        <Button variant="ghost" onClick={onSignOut} className="profile-signout">
+        <Button variant="ghost" onClick={signOut} className="profile-signout">
           Sign Out
         </Button>
       </Card>

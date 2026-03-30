@@ -1,17 +1,25 @@
 import { useState } from 'react';
+import { useNavigate, useParams } from 'react-router';
 import { Button } from '../atoms/Button';
 import { Card } from '../atoms/Card';
 import { BackButton } from '../atoms/BackButton';
+import { Spinner } from '../atoms/Spinner';
+import { useAuth } from '../../hooks/useAuth';
+import { useGameManager } from '../../hooks/useGameManager';
+import { useFriends } from '../../hooks/useFriends';
 import type { Language } from '../../types/game';
 import './NewGameScreen.css';
 
-interface NewGameScreenProps {
-  friendName: string;
-  onCreateGame: (languages: Language[]) => Promise<void>;
-  onBack: () => void;
-}
+export function NewGameScreen() {
+  const navigate = useNavigate();
+  const { friendId } = useParams<{ friendId: string }>();
+  const { user } = useAuth();
+  const { createGame } = useGameManager(user?.id ?? null);
+  const { friends } = useFriends(user?.id ?? null);
 
-export function NewGameScreen({ friendName, onCreateGame, onBack }: NewGameScreenProps) {
+  const friend = friends.find((f) => f.userId === friendId);
+  const friendName = friend?.username ?? 'Friend';
+
   const [languages, setLanguages] = useState<Set<Language>>(new Set(['en', 'de']));
   const [creating, setCreating] = useState(false);
 
@@ -27,11 +35,19 @@ export function NewGameScreen({ friendName, onCreateGame, onBack }: NewGameScree
     });
   };
 
+  const handleCreate = async () => {
+    if (!friendId) return;
+    setCreating(true);
+    const result = await createGame([...languages], friendId);
+    setCreating(false);
+    if (result) navigate('/');
+  };
+
   return (
     <div className="new-game-container">
       <Card padding="lg">
-        <BackButton onClick={onBack} />
-        <h2 className="new-game-title">New Game with @{friendName}</h2>
+        <BackButton onClick={() => navigate('/')} />
+        <h2 className="new-game-title">New Game with {friendName}</h2>
         <p className="new-game-subtitle">Choose which languages are valid</p>
 
         <div className="new-game-languages">
@@ -46,16 +62,8 @@ export function NewGameScreen({ friendName, onCreateGame, onBack }: NewGameScree
           ))}
         </div>
 
-        <Button
-          className="new-game-start"
-          onClick={async () => {
-            setCreating(true);
-            await onCreateGame([...languages]);
-            setCreating(false);
-          }}
-          disabled={creating}
-        >
-          {creating ? 'Creating...' : 'Start Game'}
+        <Button className="new-game-start" onClick={handleCreate} disabled={creating}>
+          {creating ? <Spinner size="sm" /> : 'Start Game'}
         </Button>
       </Card>
     </div>
