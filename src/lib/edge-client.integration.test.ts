@@ -15,10 +15,11 @@ const TEST_USER = {
   password: 'testpass123456',
 };
 
-const hasCredentials = SUPABASE_URL && SUPABASE_ANON_KEY;
+const hasCredentials = !!SUPABASE_URL && !!SUPABASE_ANON_KEY;
 
 describe.skipIf(!hasCredentials)('Edge Function integration (real HTTP)', () => {
-  const supabase = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!);
+  // Only create client when credentials exist (skipIf guards this describe block)
+  const supabase = hasCredentials ? createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!) : null!;
   let accessToken: string | null = null;
 
   beforeAll(async () => {
