@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 
 describe('push notification flow', () => {
   it('service worker must be registered at /sw.js', () => {

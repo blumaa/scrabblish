@@ -12,21 +12,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: 20
-          cache: npm
+          bun-version: latest
 
-      - run: npm ci
+      - run: bun install
 
       - name: TypeScript check
-        run: npx tsc -b --noEmit
+        run: bunx tsc -b --noEmit
 
       - name: Lint
-        run: npx eslint src/ --max-warnings=0
+        run: bunx eslint src/ --max-warnings=0
 
       - name: Unit tests
-        run: npx vitest run
+        run: bunx vitest run
 
   e2e:
     runs-on: ubuntu-latest
@@ -34,16 +33,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: 20
-          cache: npm
+          bun-version: latest
 
-      - run: npm ci
-      - run: npx playwright install chromium
+      - run: bun install
+      - run: bunx playwright install chromium
 
       - name: E2E tests
-        run: npx playwright test e2e/gameplay.spec.ts --reporter=list
+        run: bunx playwright test e2e/gameplay.spec.ts --reporter=list
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}

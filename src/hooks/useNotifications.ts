@@ -32,7 +32,7 @@ export function useNotifications(userId: string | null) {
       setPermission(perm);
       if (perm !== 'granted') return false;
 
-      // Get existing service worker registration (registered by vite-plugin-pwa)
+      // Get existing service worker registration (registered in main.tsx)
       const registration = await navigator.serviceWorker.ready;
 
       // Subscribe to push
