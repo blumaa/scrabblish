@@ -1,4 +1,4 @@
-export type Language = 'en' | 'de';
+export type Language = 'en' | 'de' | 'hu';
 
 export type SquareType = 'normal' | 'DL' | 'TL' | 'DW' | 'TW' | 'star';
 

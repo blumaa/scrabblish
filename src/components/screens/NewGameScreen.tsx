@@ -51,13 +51,13 @@ export function NewGameScreen() {
         <p className="new-game-subtitle">Choose which languages are valid</p>
 
         <div className="new-game-languages">
-          {(['en', 'de'] as Language[]).map((lang) => (
+          {(['en', 'de', 'hu'] as Language[]).map((lang) => (
             <button
               key={lang}
               onClick={() => toggleLang(lang)}
               className={`new-game-lang ${languages.has(lang) ? 'new-game-lang--active' : ''}`}
             >
-              {lang === 'en' ? 'English' : 'German'}
+              {{ en: 'English', de: 'German', hu: 'Hungarian' }[lang]}
             </button>
           ))}
         </div>

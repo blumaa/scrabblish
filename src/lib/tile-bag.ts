@@ -1,10 +1,12 @@
 import type { Language, Tile, TileDefinition } from '../types/game';
 import { TILES_EN } from '../constants/tiles-en';
 import { TILES_DE } from '../constants/tiles-de';
+import { TILES_HU } from '../constants/tiles-hu';
 
 const TILE_SETS: Record<Language, TileDefinition[]> = {
   en: TILES_EN,
   de: TILES_DE,
+  hu: TILES_HU,
 };
 
 /**

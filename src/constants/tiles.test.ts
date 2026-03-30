@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { TILES_EN } from './tiles-en';
 import { TILES_DE } from './tiles-de';
+import { TILES_HU } from './tiles-hu';
 import type { TileDefinition } from '../types/game';
 
 describe('English tile distribution', () => {
@@ -94,6 +95,54 @@ describe('German tile distribution', () => {
 
   it('all points are non-negative integers', () => {
     assertValidTileDefinitions(TILES_DE);
+  });
+});
+
+describe('Hungarian tile distribution', () => {
+  it('has exactly 100 tiles total', () => {
+    const total = TILES_HU.reduce((sum, t) => sum + t.count, 0);
+    expect(total).toBe(100);
+  });
+
+  it('has 2 blank tiles worth 0 points', () => {
+    const blank = TILES_HU.find((t) => t.letter === '');
+    expect(blank).toBeDefined();
+    expect(blank!.count).toBe(2);
+    expect(blank!.points).toBe(0);
+  });
+
+  it('has 6 A tiles worth 1 point', () => {
+    const a = TILES_HU.find((t) => t.letter === 'A');
+    expect(a).toBeDefined();
+    expect(a!.count).toBe(6);
+    expect(a!.points).toBe(1);
+  });
+
+  it('has digraph tiles CS, GY, LY, NY, SZ, TY, ZS', () => {
+    const digraphs = ['CS', 'GY', 'LY', 'NY', 'SZ', 'TY', 'ZS'];
+    for (const d of digraphs) {
+      const tile = TILES_HU.find((t) => t.letter === d);
+      expect(tile, `Missing digraph tile: ${d}`).toBeDefined();
+      expect(tile!.count).toBeGreaterThan(0);
+    }
+  });
+
+  it('has accented vowels Á, É, Í, Ó, Ö, Ő, Ú, Ü, Ű', () => {
+    const accented = ['Á', 'É', 'Í', 'Ó', 'Ö', 'Ő', 'Ú', 'Ü', 'Ű'];
+    for (const letter of accented) {
+      const tile = TILES_HU.find((t) => t.letter === letter);
+      expect(tile, `Missing accented letter: ${letter}`).toBeDefined();
+    }
+  });
+
+  it('TY is the highest-value non-blank tile at 10 points', () => {
+    const ty = TILES_HU.find((t) => t.letter === 'TY');
+    expect(ty).toBeDefined();
+    expect(ty!.points).toBe(10);
+  });
+
+  it('all points are non-negative integers', () => {
+    assertValidTileDefinitions(TILES_HU);
   });
 });
 
