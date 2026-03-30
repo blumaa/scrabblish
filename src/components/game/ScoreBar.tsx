@@ -1,6 +1,6 @@
 import { useRef, useEffect } from "react";
 import gsap from "gsap";
-import type { PlayerState } from "../../types/game";
+import type { PlayerState, Language } from "../../types/game";
 import "./ScoreBar.css";
 
 interface ScoreBarProps {
@@ -9,6 +9,7 @@ interface ScoreBarProps {
   currentTurnPlayerId: string | null;
   myPlayerId: string | null;
   tilesRemaining: number;
+  languages?: Language[];
   onBack?: () => void;
 }
 
@@ -18,6 +19,7 @@ export function ScoreBar({
   currentTurnPlayerId,
   myPlayerId,
   tilesRemaining,
+  languages,
   onBack,
 }: ScoreBarProps) {
   return (
@@ -48,6 +50,9 @@ export function ScoreBar({
         <div className="score-bar-center">
           <span className="tiles-remaining">{tilesRemaining}</span>
           <span className="tiles-remaining-label">tiles</span>
+          {languages && languages.length > 0 && (
+            <span className="score-bar-languages">{languages.join(' | ')}</span>
+          )}
         </div>
         <PlayerScore
           player={player2}

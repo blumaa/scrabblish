@@ -143,7 +143,12 @@ serve(async (req) => {
 
       // Store words from client for LastPlay display and stats
       if (Array.isArray(words) && words.length > 0) {
-        wordsFormed = words.map((w: string) => ({ word: w, score: 0 }));
+        // Support both formats: [{word, languages}] (new) or string[] (legacy)
+        wordsFormed = words.map((w: unknown) => {
+          if (typeof w === 'string') return { word: w, score: 0 };
+          const obj = w as { word: string; languages?: string[] };
+          return { word: obj.word, score: 0, languages: obj.languages ?? [] };
+        });
       }
     } else if (action === 'exchange') {
       const tileIds = body.tileIds as string[];

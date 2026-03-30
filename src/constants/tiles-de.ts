@@ -1,7 +1,5 @@
-import type { TileDefinition } from '../types/game';
-
 // Standard German Scrabble tile distribution (102 tiles)
-export const TILES_DE: TileDefinition[] = [
+export const TILES_DE = [
   { letter: '', points: 0, count: 2 },    // Blanks
   { letter: 'A', points: 1, count: 5 },
   { letter: 'Ä', points: 6, count: 1 },

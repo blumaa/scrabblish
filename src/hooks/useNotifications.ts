@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
+import { supportsNotifications } from '../lib/app-context';
 
 export function useNotifications(userId: string | null) {
   const [enabled, setEnabled] = useState(false);
+  const supported = supportsNotifications();
   const [permission, setPermission] = useState<NotificationPermission>('default');
 
   useEffect(() => {
@@ -24,7 +26,7 @@ export function useNotifications(userId: string | null) {
   }, [userId]);
 
   const registerPush = useCallback(async () => {
-    if (!userId || !('serviceWorker' in navigator) || !('PushManager' in window)) return false;
+    if (!supported || !userId || !('serviceWorker' in navigator) || !('PushManager' in window)) return false;
 
     try {
       // Request notification permission
@@ -63,7 +65,7 @@ export function useNotifications(userId: string | null) {
       console.error('Push registration failed:', err);
       return false;
     }
-  }, [userId]);
+  }, [userId, supported]);
 
   const unregisterPush = useCallback(async () => {
     if (!('serviceWorker' in navigator)) return;
@@ -93,6 +95,7 @@ export function useNotifications(userId: string | null) {
   }, [userId]);
 
   return {
+    supported,
     enabled,
     permission,
     registerPush,

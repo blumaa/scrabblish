@@ -19,7 +19,7 @@ export function ProfileScreen() {
   const { user, signOut } = useAuth();
   const { profile, updateProfile } = useProfile(user?.id ?? null);
   const { friends, error, searchUsers, addFriend, removeFriend } = useFriends(user?.id ?? null);
-  const { enabled: notificationsEnabled, registerPush, unregisterPush } = useNotifications(user?.id ?? null);
+  const { supported: notificationsSupported, enabled: notificationsEnabled, registerPush, unregisterPush } = useNotifications(user?.id ?? null);
 
   const username = profile?.username ?? '';
   const avatarIcon = profile?.avatarUrl ?? null;
@@ -169,18 +169,20 @@ export function ProfileScreen() {
         ))}
       </Card>
 
-      <Card padding="sm" className="profile-section">
-        <h3 className="profile-section-title">Settings</h3>
-        <div className="profile-setting-row">
-          <span className="profile-setting-label">Push Notifications</span>
-          <button
-            className={`profile-toggle ${notificationsEnabled ? 'profile-toggle--on' : ''}`}
-            onClick={handleToggleNotifications}
-          >
-            {notificationsEnabled ? 'On' : 'Off'}
-          </button>
-        </div>
-      </Card>
+      {notificationsSupported && (
+        <Card padding="sm" className="profile-section">
+          <h3 className="profile-section-title">Settings</h3>
+          <div className="profile-setting-row">
+            <span className="profile-setting-label">Push Notifications</span>
+            <button
+              className={`profile-toggle ${notificationsEnabled ? 'profile-toggle--on' : ''}`}
+              onClick={handleToggleNotifications}
+            >
+              {notificationsEnabled ? 'On' : 'Off'}
+            </button>
+          </div>
+        </Card>
+      )}
 
       <Card padding="sm" className="profile-section profile-section--center">
         <Button variant="ghost" onClick={signOut} className="profile-signout">

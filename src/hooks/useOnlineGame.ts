@@ -3,12 +3,19 @@ import { supabase } from '../lib/supabase';
 import type { GameState, Board, PlacedTile, Tile, Language } from '../types/game';
 import { createEmptyBoard } from '../lib/board-utils';
 
+export interface CommittedWord {
+  word: string;
+  languages: string[];
+  tiles: { row: number; col: number }[];
+}
+
 interface UseOnlineGameReturn {
   gameState: GameState | null;
   loading: boolean;
   error: string | null;
   myHand: Tile[];
-  submitMove: (tiles: PlacedTile[], score: number, words: string[]) => Promise<boolean>;
+  committedWords: CommittedWord[];
+  submitMove: (tiles: PlacedTile[], score: number, words: { word: string; languages: string[] }[]) => Promise<boolean>;
   exchangeTiles: (tileIds: string[]) => Promise<boolean>;
   refreshState: () => Promise<void>;
 }
@@ -20,6 +27,7 @@ export function useOnlineGame(
 ): UseOnlineGameReturn {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [myHand, setMyHand] = useState<Tile[]>([]);
+  const [committedWordsList, setCommittedWordsList] = useState<CommittedWord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const moveNumberRef = useRef(0);
@@ -59,24 +67,49 @@ export function useOnlineGame(
 
       moveNumberRef.current = game.move_number;
 
-      // Load last move for LastPlay display
+      // Load all moves for committed word language data + last play
       let lastPlay: GameState['lastPlay'] = null;
-      if (game.move_number > 0) {
-        const { data: lastMove } = await supabase
-          .from('moves')
-          .select('player_id, words_formed, score')
-          .eq('game_id', gameId)
-          .order('move_number', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+      interface CommittedWord {
+        word: string;
+        languages: string[];
+        tiles: { row: number; col: number }[];
+      }
+      const committedWords: CommittedWord[] = [];
 
-        if (lastMove && lastMove.words_formed) {
-          const words = (lastMove.words_formed as { word: string }[]).map((w) => w.word);
-          lastPlay = {
-            playerName: getUsername(lastMove.player_id),
-            words,
-            score: lastMove.score,
-          };
+      if (game.move_number > 0) {
+        const { data: allMoves } = await supabase
+          .from('moves')
+          .select('player_id, words_formed, tiles_placed, score, move_number')
+          .eq('game_id', gameId)
+          .eq('move_type', 'place')
+          .order('move_number', { ascending: true });
+
+        if (allMoves && allMoves.length > 0) {
+          // Extract committed words with language data
+          for (const move of allMoves) {
+            const wordsFormed = move.words_formed as { word: string; languages?: string[] }[] | null;
+            const tilesPlaced = move.tiles_placed as { row: number; col: number }[] | null;
+            if (wordsFormed && tilesPlaced) {
+              for (const w of wordsFormed) {
+                committedWords.push({
+                  word: w.word,
+                  languages: w.languages ?? [],
+                  tiles: tilesPlaced,
+                });
+              }
+            }
+          }
+
+          // Last move for LastPlay display
+          const lastMove = allMoves[allMoves.length - 1];
+          if (lastMove.words_formed) {
+            const words = (lastMove.words_formed as { word: string }[]).map((w) => w.word);
+            lastPlay = {
+              playerName: getUsername(lastMove.player_id),
+              words,
+              score: lastMove.score,
+            };
+          }
         }
       }
 
@@ -114,6 +147,7 @@ export function useOnlineGame(
 
       setGameState(state);
       setMyHand(handResult.hand);
+      setCommittedWordsList(committedWords);
       setLoading(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load game');
@@ -161,7 +195,7 @@ export function useOnlineGame(
   const submitMove = useCallback(async (
     tiles: PlacedTile[],
     score: number,
-    words: string[]
+    words: { word: string; languages: string[] }[]
   ): Promise<boolean> => {
     try {
       setError(null);
@@ -208,6 +242,7 @@ export function useOnlineGame(
     gameState,
     loading,
     error,
+    committedWords: committedWordsList,
     myHand,
     submitMove,
     exchangeTiles,

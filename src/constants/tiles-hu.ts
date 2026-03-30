@@ -1,8 +1,6 @@
-import type { TileDefinition } from '../types/game';
-
 // Official Hungarian Scrabble tile distribution (100 tiles)
 // Includes digraph tiles (CS, GY, LY, NY, SZ, TY, ZS) — each is one tile
-export const TILES_HU: TileDefinition[] = [
+export const TILES_HU = [
   { letter: '', points: 0, count: 2 },     // Blanks
   { letter: 'A', points: 1, count: 6 },
   { letter: 'Á', points: 1, count: 4 },

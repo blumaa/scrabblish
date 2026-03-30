@@ -38,7 +38,7 @@ export function GameScreen() {
     onRecallAll: () => dispatch({ type: 'RECALL_ALL_TILES' }),
     onMovePendingTile: (tileId, row, col) => dispatch({ type: 'MOVE_PENDING_TILE', tileId, position: { row, col } }),
     onShuffle: () => dispatch({ type: 'SHUFFLE_RACK' }),
-    onSubmitValidated: (score, wordStrings) => {
+    onSubmitValidated: (score, wordsWithLangs) => {
       const newBoard = state.board.map((row) => [...row]);
       for (const t of state.pendingTiles) {
         newBoard[t.row][t.col] = t;
@@ -71,7 +71,7 @@ export function GameScreen() {
       dispatch({ type: 'MOVE_SUBMITTED', updatedHand: newHand, moveNumber: state.moveNumber + 1 });
 
       const currentPlayerName = isP1 ? state.player1.displayName : state.player2.displayName;
-      dispatch({ type: 'SET_LAST_PLAY', playerName: currentPlayerName, words: wordStrings, score });
+      dispatch({ type: 'SET_LAST_PLAY', playerName: currentPlayerName, words: wordsWithLangs.map((w) => w.word), score });
       dispatch({ type: 'SET_MY_PLAYER', playerId: isP1 ? state.player2.id : state.player1.id });
     },
     onError: (error) => dispatch({ type: 'MOVE_ERROR', error }),
@@ -117,6 +117,7 @@ export function GameScreen() {
         currentTurnPlayerId={state.currentTurnPlayerId}
         myPlayerId={state.myPlayerId}
         tilesRemaining={state.tilesRemaining}
+        languages={state.languages}
       />
 
       {state.lastPlay ? (
@@ -143,6 +144,7 @@ export function GameScreen() {
           swapSelected={interaction.swapSelected}
           onToggleSwapTile={interaction.handleToggleSwapTile}
           validatedWords={interaction.validatedWords}
+          gameLanguages={state.languages}
         />
       </div>
 

@@ -6,7 +6,7 @@ import { buildTransformString } from './useBoardViewport';
 import { Square } from './Square';
 import { PlacedTileComponent } from './PlacedTile';
 import { useBoardViewport } from './useBoardViewport';
-import type { Board as BoardType, PlacedTile, Tile } from '../../types/game';
+import type { Board as BoardType, PlacedTile, Tile, Language } from '../../types/game';
 import type { ValidatedWord } from '../../lib/word-validation';
 import { DraggableTile } from './DraggableTile';
 import './Board.css';
@@ -32,6 +32,8 @@ interface BoardProps {
   onToggleSwapTile?: (tileId: string) => void;
   onTilePlaced?: (row: number, col: number) => void;
   validatedWords?: ValidatedWord[];
+  committedWords?: { word: string; languages: string[]; tiles: { row: number; col: number }[] }[];
+  gameLanguages?: Language[];
   rackOrder?: string[]; // original tile IDs in order, for stable slot positions
 }
 
@@ -52,6 +54,8 @@ export function Board({
   onToggleSwapTile,
   onTilePlaced,
   validatedWords = [],
+  committedWords = [],
+  gameLanguages = [],
   rackOrder = [],
 }: BoardProps) {
   const viewport = useBoardViewport();
@@ -363,11 +367,45 @@ export function Board({
             const wordScore = calculateWordScore(tiles, newTileIds);
             const rectX = minCol * CELL_SIZE + 2;
             const rectY = (maxRow + 1) * CELL_SIZE - 18;
+            const maxCol = Math.max(...tiles.map((t) => t.col));
+            const langLabel = w.languages.map((l) => l.toUpperCase()).join('/');
+            const langW = langLabel.length * 5 + 6;
+            const langX = (maxCol + 1) * CELL_SIZE - langW - 2;
+            const langY = minRow * CELL_SIZE + 2;
             return (
-              <g key={`whs-${w.word}-${minRow}-${minCol}`} transform={`translate(${rectX}, ${rectY})`}>
-                <rect width={26} height={16} rx={3} fill="var(--color-valid)" />
-                <text x={13} y={12} textAnchor="middle" fontSize={11} fontWeight={700} fill="var(--moon)">
-                  {wordScore}
+              <g key={`whs-${w.word}-${minRow}-${minCol}`}>
+                <g transform={`translate(${rectX}, ${rectY})`}>
+                  <rect width={26} height={16} rx={3} fill="var(--color-valid)" />
+                  <text x={13} y={12} textAnchor="middle" fontSize={11} fontWeight={700} fill="var(--moon)">
+                    {wordScore}
+                  </text>
+                </g>
+                {langLabel && gameLanguages.length > 1 && (
+                  <g transform={`translate(${langX}, ${langY})`}>
+                    <rect width={langW} height={10} rx={2} fill="var(--color-primary)" opacity={0.75} />
+                    <text x={langW / 2} y={7.5} textAnchor="middle" fontSize={6} fontWeight={600} fill="var(--moon)">
+                      {langLabel}
+                    </text>
+                  </g>
+                )}
+              </g>
+            );
+          })}
+
+          {/* Committed word language badges */}
+          {gameLanguages.length > 1 && committedWords.map((cw, i) => {
+            if (cw.languages.length === 0 || cw.tiles.length === 0) return null;
+            const minRow = Math.min(...cw.tiles.map((t) => t.row));
+            const maxCol = Math.max(...cw.tiles.map((t) => t.col));
+            const langLabel = cw.languages.map((l) => l.toUpperCase()).join('/');
+            const langW = langLabel.length * 5 + 6;
+            const langX = (maxCol + 1) * CELL_SIZE - langW - 2;
+            const langY = minRow * CELL_SIZE + 2;
+            return (
+              <g key={`cwl-${cw.word}-${i}`} transform={`translate(${langX}, ${langY})`}>
+                <rect width={langW} height={10} rx={2} fill="var(--color-primary)" opacity={0.6} />
+                <text x={langW / 2} y={7.5} textAnchor="middle" fontSize={6} fontWeight={600} fill="var(--moon)">
+                  {langLabel}
                 </text>
               </g>
             );

@@ -29,6 +29,7 @@ export function OnlineGameScreen() {
     myHand,
     submitMove: serverSubmitMove,
     exchangeTiles: serverExchangeTiles,
+    committedWords,
   } = useOnlineGame(gameId ?? '', userId, callEdgeFunction);
 
   const [pendingTiles, setPendingTiles] = useState<PlacedTile[]>([]);
@@ -67,12 +68,12 @@ export function OnlineGameScreen() {
       setPendingTiles((prev) => prev.map((t) => (t.id === tileId ? { ...t, row, col } : t)));
     },
     onShuffle: () => { setShuffledRack([...rack].sort(() => Math.random() - 0.5)); setRackOrder([]); },
-    onSubmitValidated: async (score, words) => {
+    onSubmitValidated: async (score, wordsWithLangs) => {
       setSyncing(true);
-      const success = await serverSubmitMove(pendingTiles, score, words);
+      const success = await serverSubmitMove(pendingTiles, score, wordsWithLangs);
       setSyncing(false);
       if (success && me) {
-        setLastPlay({ playerName: me.displayName, words, score });
+        setLastPlay({ playerName: me.displayName, words: wordsWithLangs.map((w) => w.word), score });
         setPendingTiles([]);
         setRackOrder([]);
         setError(null);
@@ -120,6 +121,7 @@ export function OnlineGameScreen() {
         currentTurnPlayerId={serverState.currentTurnPlayerId}
         myPlayerId={userId}
         tilesRemaining={serverState.tilesRemaining}
+        languages={serverState.languages}
         onBack={onBack}
       />
 
@@ -151,6 +153,8 @@ export function OnlineGameScreen() {
           swapSelected={interaction.swapSelected}
           onToggleSwapTile={interaction.handleToggleSwapTile}
           validatedWords={interaction.validatedWords}
+          committedWords={committedWords}
+          gameLanguages={serverState.languages}
         />
       </div>
 

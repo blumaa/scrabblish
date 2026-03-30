@@ -16,7 +16,7 @@ interface GameInteractionConfig {
   onRecallAll: () => void;
   onMovePendingTile: (tileId: string, row: number, col: number) => void;
   onShuffle: () => void;
-  onSubmitValidated: (score: number, words: string[]) => void;
+  onSubmitValidated: (score: number, words: { word: string; languages: string[] }[]) => void;
   onError: (message: string) => void;
 }
 
@@ -81,8 +81,14 @@ export function useGameInteraction(config: GameInteractionConfig) {
 
     const newTileIds = new Set(pendingTiles.map((t) => t.id));
     const score = calculateMoveScore(words, newTileIds);
-    const wordStrings = words.map((w) => w.word);
-    onSubmitValidated(score, wordStrings);
+
+    // Include language attribution from dictionary validation
+    const validated = dicts ? validateFormedWords(words, dicts) : [];
+    const wordsWithLangs = words.map((w) => {
+      const v = validated.find((vw) => vw.word === w.word);
+      return { word: w.word, languages: v?.languages ?? [] };
+    });
+    onSubmitValidated(score, wordsWithLangs);
   };
 
   const handleEnterSwapMode = () => {

@@ -82,6 +82,13 @@
   color: var(--color-ink);
 }
 
+.score-bar-languages {
+  font-size: 9px;
+  color: var(--color-ink-faint);
+  letter-spacing: 0.5px;
+  margin-top: 1px;
+}
+
 .tiles-remaining-label {
   font-size: 10px;
   color: var(--color-ink-light);
