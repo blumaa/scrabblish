@@ -100,15 +100,24 @@ export function useOnlineGame(
             }
           }
 
-          // Last move for LastPlay display
-          const lastMove = allMoves[allMoves.length - 1];
-          if (lastMove.words_formed) {
-            const words = (lastMove.words_formed as { word: string }[]).map((w) => w.word);
-            lastPlay = {
-              playerName: getUsername(lastMove.player_id),
-              words,
-              score: lastMove.score,
-            };
+        }
+
+        // Last move for LastPlay display (any move type, not just 'place')
+        const { data: lastMoveRow } = await supabase
+          .from('moves')
+          .select('player_id, move_type, words_formed, tiles_exchanged_count, score')
+          .eq('game_id', gameId)
+          .order('move_number', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (lastMoveRow) {
+          const playerName = getUsername(lastMoveRow.player_id);
+          if (lastMoveRow.move_type === 'exchange') {
+            lastPlay = { playerName, words: ['swapped tiles'], score: 0 };
+          } else if (lastMoveRow.words_formed) {
+            const words = (lastMoveRow.words_formed as { word: string }[]).map((w) => w.word);
+            lastPlay = { playerName, words, score: lastMoveRow.score };
           }
         }
       }
