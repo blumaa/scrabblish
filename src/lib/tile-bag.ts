@@ -50,6 +50,24 @@ export function createMergedBag(languages: Language[]): Tile[] {
 }
 
 /**
+ * Get the total number of tiles in a merged bag without creating it.
+ */
+export function getMergedBagSize(languages: Language[]): number {
+  if (languages.length === 1) {
+    return TILE_SETS[languages[0]].reduce((sum, d) => sum + d.count, 0);
+  }
+  const merged = new Map<string, number>();
+  for (const lang of languages) {
+    for (const def of TILE_SETS[lang]) {
+      merged.set(def.letter, Math.max(merged.get(def.letter) ?? 0, def.count));
+    }
+  }
+  let total = 0;
+  for (const count of merged.values()) total += count;
+  return total;
+}
+
+/**
  * Draw tiles from the front of the bag.
  * Bag should already be shuffled.
  */

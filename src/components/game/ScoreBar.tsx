@@ -9,6 +9,7 @@ interface ScoreBarProps {
   currentTurnPlayerId: string | null;
   myPlayerId: string | null;
   tilesRemaining: number;
+  totalTiles?: number;
   languages?: Language[];
   onBack?: () => void;
 }
@@ -19,6 +20,7 @@ export function ScoreBar({
   currentTurnPlayerId,
   myPlayerId,
   tilesRemaining,
+  totalTiles,
   languages,
   onBack,
 }: ScoreBarProps) {
@@ -48,7 +50,25 @@ export function ScoreBar({
           isMe={myPlayerId === player1.id}
         />
         <div className="score-bar-center">
-          <span className="tiles-remaining">{tilesRemaining}</span>
+          {totalTiles ? (
+            <div className="tile-ring-wrapper">
+              <svg className="tile-ring" viewBox="0 0 48 48">
+                <circle cx="24" cy="24" r="20" fill="none" stroke="var(--border-default)" strokeWidth="3" />
+                <circle
+                  cx="24" cy="24" r="20" fill="none"
+                  stroke="var(--color-primary)"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeDasharray={2 * Math.PI * 20}
+                  strokeDashoffset={2 * Math.PI * 20 * (1 - tilesRemaining / totalTiles)}
+                  transform="rotate(-90 24 24)"
+                />
+              </svg>
+              <span className="tile-ring-count">{tilesRemaining}</span>
+            </div>
+          ) : (
+            <span className="tiles-remaining">{tilesRemaining}</span>
+          )}
           <span className="tiles-remaining-label">tiles</span>
           {languages && languages.length > 0 && (
             <span className="score-bar-languages">{languages.join(' | ')}</span>

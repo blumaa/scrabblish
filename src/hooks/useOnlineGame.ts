@@ -14,6 +14,7 @@ interface UseOnlineGameReturn {
   loading: boolean;
   error: string | null;
   myHand: Tile[];
+  totalTiles: number;
   committedWords: CommittedWord[];
   submitMove: (tiles: PlacedTile[], score: number, words: { word: string; languages: string[] }[]) => Promise<boolean>;
   exchangeTiles: (tileIds: string[]) => Promise<boolean>;
@@ -28,6 +29,7 @@ export function useOnlineGame(
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [myHand, setMyHand] = useState<Tile[]>([]);
   const [committedWordsList, setCommittedWordsList] = useState<CommittedWord[]>([]);
+  const [totalTiles, setTotalTiles] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const moveNumberRef = useRef(0);
@@ -154,6 +156,9 @@ export function useOnlineGame(
         error: null,
       };
 
+      // total = bag + both hands (14) + tiles on board
+      const tilesOnBoard = board.flat().filter((t) => t !== null).length;
+      setTotalTiles(handResult.tilesRemaining + 14 + tilesOnBoard);
       setGameState(state);
       setMyHand(handResult.hand);
       setCommittedWordsList(committedWords);
@@ -251,6 +256,7 @@ export function useOnlineGame(
     gameState,
     loading,
     error,
+    totalTiles,
     committedWords: committedWordsList,
     myHand,
     submitMove,

@@ -29,6 +29,7 @@ export function OnlineGameScreen() {
     myHand,
     submitMove: serverSubmitMove,
     exchangeTiles: serverExchangeTiles,
+    totalTiles,
     committedWords,
   } = useOnlineGame(gameId ?? '', userId, callEdgeFunction);
 
@@ -121,6 +122,7 @@ export function OnlineGameScreen() {
         currentTurnPlayerId={serverState.currentTurnPlayerId}
         myPlayerId={userId}
         tilesRemaining={serverState.tilesRemaining}
+        totalTiles={totalTiles}
         languages={serverState.languages}
         onBack={onBack}
       />
