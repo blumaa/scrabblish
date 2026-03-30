@@ -1,0 +1,23 @@
+.rack-wrapper {
+  width: 100%;
+  max-width: 350px;
+  margin: 0 auto;
+}
+
+.rack-svg {
+  width: 100%;
+  height: auto;
+  touch-action: none;
+}
+
+.rack-slot {
+  fill: var(--bg-rack);
+  stroke: var(--border-default);
+  stroke-width: 1;
+  stroke-dasharray: 4 2;
+}
+
+.rack-tile-selected .tile-bg {
+  stroke: var(--color-valid);
+  stroke-width: 2.5;
+}

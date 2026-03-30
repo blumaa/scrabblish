@@ -1,0 +1,56 @@
+.new-game-container {
+  min-height: 100dvh;
+  padding: var(--space-4);
+  padding-top: calc(var(--space-4) + var(--sat));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.new-game-container .card {
+  width: 100%;
+  max-width: 380px;
+}
+
+.new-game-title {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-xl);
+  color: var(--text-primary);
+}
+
+.new-game-subtitle {
+  margin: 0 0 var(--space-5);
+  font-size: var(--text-base);
+  color: var(--text-muted);
+}
+
+.new-game-languages {
+  display: flex;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.new-game-lang {
+  flex: 1;
+  padding: var(--space-3);
+  font-size: var(--text-base);
+  font-weight: var(--weight-regular);
+  border: 2px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  min-height: var(--touch-min);
+  touch-action: manipulation;
+}
+
+.new-game-lang--active {
+  border-color: var(--text-primary);
+  background: var(--tile-face);
+  color: var(--text-primary);
+  font-weight: var(--weight-semi);
+}
+
+.new-game-start {
+  width: 100%;
+}

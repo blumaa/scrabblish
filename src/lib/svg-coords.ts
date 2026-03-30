@@ -62,6 +62,45 @@ export function screenToSvgCoords(
   };
 }
 
+/**
+ * Convert board-space coordinates to SVG-space coordinates.
+ * Inverse of svgCoordsToBoard. Used to position elements outside
+ * the zoom group at the correct SVG location to match zoomed board cells.
+ */
+export function boardCoordsToSvg(
+  boardX: number,
+  boardY: number,
+  scale: number,
+  panX: number,
+  panY: number
+): { x: number; y: number } {
+  return {
+    x: (boardX - panX) * scale,
+    y: (boardY - panY) * scale,
+  };
+}
+
+/**
+ * Convert SVG-space coordinates to board-space coordinates,
+ * accounting for the zoom transform (scale + pan) applied to
+ * the board content group.
+ *
+ * Elements outside the zoom group (like rack tiles) have SVG coords
+ * that don't match board coords when zoomed. This function converts.
+ */
+export function svgCoordsToBoard(
+  svgX: number,
+  svgY: number,
+  scale: number,
+  panX: number,
+  panY: number
+): { x: number; y: number } {
+  return {
+    x: svgX / scale + panX,
+    y: svgY / scale + panY,
+  };
+}
+
 function clamp(val: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, val));
 }

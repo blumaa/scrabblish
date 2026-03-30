@@ -1,0 +1,105 @@
+.board-wrapper {
+  width: 100%;
+  margin: 0 auto;
+}
+
+@media (min-width: 640px) {
+  .board-wrapper {
+    max-width: 600px;
+  }
+}
+
+.board-svg {
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Premium square fills */
+.sq-normal { fill: var(--color-board); }
+.sq-DL { fill: var(--color-dl); }
+.sq-TL { fill: var(--color-tl); }
+.sq-DW { fill: var(--color-dw); }
+.sq-TW { fill: var(--color-tw); }
+.sq-star { fill: var(--color-dw); }
+
+/* Premium square labels */
+.sq-label {
+  font-size: 14px;
+  font-weight: 700;
+  pointer-events: none;
+  user-select: none;
+}
+.sq-label-DL { fill: var(--color-dl-text); }
+.sq-label-TL { fill: var(--color-tl-text); }
+.sq-label-DW { fill: var(--color-dw-text); }
+.sq-label-TW { fill: var(--color-tw-text); }
+
+/* Tile styling */
+.tile-bg {
+  fill: var(--color-tile-face);
+  stroke: var(--color-tile-border);
+  stroke-width: 1.5;
+}
+
+/* Pending tiles use the same style as normal tiles —
+   valid word highlight is on the word group, not individual tiles */
+
+.tile-letter {
+  font-size: 24px;
+  font-weight: bold;
+  font-family: 'Inter', sans-serif;
+  fill: var(--color-tile-letter);
+  pointer-events: none;
+  user-select: none;
+}
+
+.tile-points {
+  font-size: 10px;
+  font-family: 'Inter', sans-serif;
+  fill: var(--color-tile-points);
+  pointer-events: none;
+  user-select: none;
+}
+
+.tile-blank .tile-letter {
+  fill: var(--color-ink-light);
+  font-style: italic;
+}
+
+/* Board grid lines */
+.sq-border {
+  stroke: var(--border-default);
+  stroke-width: 0.5;
+}
+
+/* Star marker */
+.star-marker {
+  font-size: 18px;
+  fill: var(--color-center-star);
+  pointer-events: none;
+}
+
+/* Rack slot */
+.rack-slot {
+  fill: var(--color-rack);
+  stroke: var(--border-default);
+  stroke-width: 1;
+  stroke-dasharray: 4 2;
+}
+
+/* Swap mode selected tile */
+.tile-swap-selected .tile-bg {
+  fill: var(--coral);
+  stroke: var(--color-error);
+  stroke-width: 2.5;
+}
+
+.tile-swap-badge {
+  font-size: 18px;
+  font-weight: 700;
+  fill: var(--color-error);
+  pointer-events: none;
+}

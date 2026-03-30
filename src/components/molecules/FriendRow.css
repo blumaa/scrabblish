@@ -1,0 +1,28 @@
+.friend-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--border-default);
+}
+
+.friend-row:last-child {
+  border-bottom: none;
+}
+
+.friend-row__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.friend-row__name {
+  display: block;
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  color: var(--text-primary);
+}
+
+.friend-row__actions {
+  display: flex;
+  gap: var(--space-2);
+}

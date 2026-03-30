@@ -1,136 +1,174 @@
-import { useReducer, useRef, useCallback } from 'react';
-import { Board } from './components/board/Board';
-import { DraggableTile } from './components/board/DraggableTile';
-import { CELL_SIZE } from './lib/svg-coords';
+import { useState } from 'react';
+import { useAuth } from './hooks/useAuth';
+import { useGameManager } from './hooks/useGameManager';
+import { useProfile } from './hooks/useProfile';
+import { useFriends } from './hooks/useFriends';
+import { useNotifications } from './hooks/useNotifications';
+import { useStats } from './hooks/useStats';
+import { LoginScreen } from './components/screens/LoginScreen';
+import { HomeScreen } from './components/screens/HomeScreen';
+import { ProfileScreen } from './components/screens/ProfileScreen';
+import { NewGameScreen } from './components/screens/NewGameScreen';
+import { StatsScreen } from './components/screens/StatsScreen';
+import { GameScreen } from './components/game/GameScreen';
+import { OnlineGameScreen } from './components/game/OnlineGameScreen';
+import { callEdgeFunction } from './lib/edge-client';
+import { Spinner } from './components/atoms/Spinner';
+import type { Language } from './types/game';
 
-interface TileState {
-  id: string;
-  letter: string;
-  points: number;
-  row: number;
-  col: number;
-}
-
-interface SpikeState {
-  tiles: TileState[];
-  moveCount: number;
-  lastAction: string;
-}
-
-type SpikeAction =
-  | { type: 'TILE_DROPPED'; tileId: string; row: number; col: number }
-  | { type: 'TILE_DRAG_START'; tileId: string }
-  | { type: 'RESET' };
-
-const initialTiles: TileState[] = [
-  { id: 'S', letter: 'S', points: 1, row: 7, col: 5 },
-  { id: 'P', letter: 'P', points: 3, row: 7, col: 6 },
-  { id: 'I', letter: 'I', points: 1, row: 7, col: 7 },
-  { id: 'K', letter: 'K', points: 5, row: 7, col: 8 },
-  { id: 'E', letter: 'E', points: 1, row: 7, col: 9 },
-];
-
-const initialState: SpikeState = {
-  tiles: initialTiles,
-  moveCount: 0,
-  lastAction: 'None',
-};
-
-function spikeReducer(state: SpikeState, action: SpikeAction): SpikeState {
-  switch (action.type) {
-    case 'TILE_DRAG_START':
-      return { ...state, lastAction: `Dragging ${action.tileId}` };
-    case 'TILE_DROPPED': {
-      const tiles = state.tiles.map((t) =>
-        t.id === action.tileId ? { ...t, row: action.row, col: action.col } : t
-      );
-      return {
-        ...state,
-        tiles,
-        moveCount: state.moveCount + 1,
-        lastAction: `Dropped ${action.tileId} at (${action.row}, ${action.col})`,
-      };
-    }
-    case 'RESET':
-      return initialState;
-    default:
-      return state;
-  }
-}
+type Screen = 'home' | 'game' | 'local' | 'profile' | 'new-game' | 'stats';
 
 export default function App() {
-  const [state, dispatch] = useReducer(spikeReducer, initialState);
-  const svgRef = useRef<SVGSVGElement>(null);
-
-  const handleDragStart = useCallback(
-    (tileId: string) => {
-      dispatch({ type: 'TILE_DRAG_START', tileId });
-    },
-    []
+  const { user, loading: authLoading, error: authError, signIn, signUp, signOut, resetPassword, clearError } = useAuth();
+  const { games, invitations, loading: gamesLoading, createGame, acceptInvitation, declineInvitation } = useGameManager(user?.id ?? null);
+  const { profile, updateProfile } = useProfile(user?.id ?? null);
+  const { friends, error: friendsError, searchUsers, addFriend, removeFriend } = useFriends(user?.id ?? null);
+  const { enabled: notificationsEnabled, registerPush, unregisterPush } = useNotifications(user?.id ?? null);
+  const { stats, languageStats, loading: statsLoading } = useStats(user?.id ?? null);
+  const [screen, setScreen] = useState<Screen>(
+    new URLSearchParams(window.location.search).get('mode') === 'local' ? 'local' : 'home'
   );
+  const [activeGameId, setActiveGameId] = useState<string | null>(null);
+  const [newGameFriendId, setNewGameFriendId] = useState<string | null>(null);
 
-  const handleDrop = useCallback(
-    (tileId: string, row: number, col: number) => {
-      dispatch({ type: 'TILE_DROPPED', tileId, row, col });
-    },
-    []
-  );
+  if (authLoading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100dvh' }}>
+        <Spinner size="lg" />
+      </div>
+    );
+  }
+
+  if (screen === 'local') {
+    return <GameScreen />;
+  }
+
+  if (!user) {
+    return (
+      <LoginScreen
+        onSignIn={signIn}
+        onSignUp={signUp}
+        onResetPassword={resetPassword}
+        error={authError}
+        loading={authLoading}
+        onClearError={clearError}
+      />
+    );
+  }
+
+  if (screen === 'profile') {
+    return (
+      <ProfileScreen
+        username={profile?.username ?? ''}
+        avatarIcon={profile?.avatarUrl ?? null}
+        onUpdateProfile={async (updates) => {
+          return updateProfile(updates);
+        }}
+        friends={friends}
+        onSearchUsers={searchUsers}
+        onAddFriend={addFriend}
+        onRemoveFriend={removeFriend}
+        onSignOut={signOut}
+        onStartGame={(friendUserId) => {
+          setNewGameFriendId(friendUserId);
+          setScreen('new-game');
+        }}
+        onBack={() => setScreen('home')}
+        onOpenStats={() => setScreen('stats')}
+        error={friendsError}
+        notificationsEnabled={notificationsEnabled}
+        onToggleNotifications={async () => {
+          if (notificationsEnabled) {
+            await unregisterPush();
+          } else {
+            await registerPush();
+          }
+        }}
+      />
+    );
+  }
+
+  if (screen === 'stats' && user) {
+    // Build game history from finished games
+    const finishedGames = games
+      .filter((g) => g.status === 'finished')
+      .map((g) => ({
+        id: g.id,
+        languages: g.languages,
+        myScore: g.myScore,
+        opponentScore: g.opponentScore,
+        opponentName: (g.player1Id === user.id ? g.player2Name : g.player1Name) ?? 'Unknown',
+        winnerId: g.winnerId,
+        finishedAt: g.updatedAt,
+      }));
+
+    return (
+      <StatsScreen
+        stats={stats}
+        languageStats={languageStats}
+        gameHistory={finishedGames}
+        userId={user.id}
+        loading={statsLoading}
+        onBack={() => setScreen('home')}
+      />
+    );
+  }
+
+  if (screen === 'new-game' && newGameFriendId) {
+    const friend = friends.find((f) => f.userId === newGameFriendId);
+    return (
+      <NewGameScreen
+        friendName={friend?.username ?? 'Friend'}
+        onCreateGame={async (languages: Language[]) => {
+          const result = await createGame(languages, newGameFriendId ?? undefined);
+          if (result) {
+            setActiveGameId(result.id);
+            setScreen('home');
+          }
+        }}
+        onBack={() => setScreen('home')}
+      />
+    );
+  }
+
+  if (screen === 'game' && activeGameId && user) {
+    return (
+      <OnlineGameScreen
+        gameId={activeGameId}
+        userId={user.id}
+        callEdgeFunction={callEdgeFunction}
+        onBack={() => setScreen('home')}
+      />
+    );
+  }
 
   return (
-    <div style={{ padding: 16, fontFamily: 'system-ui, sans-serif', maxWidth: 700, margin: '0 auto' }}>
-      <h2 style={{ margin: '0 0 8px', fontSize: 18 }}>
-        Scrabblish — Phase 0 Spike
-      </h2>
-      <p style={{ margin: '0 0 16px', fontSize: 13, color: '#666' }}>
-        Drag tiles on the board. Double-tap to zoom in/out.
-        Pan by dragging empty board area when zoomed in.
-        useReducer re-renders on every action ({state.moveCount} moves).
-      </p>
-
-      <Board svgRef={svgRef}>
-        {(viewport) => (
-          <g id="tiles">
-            {state.tiles.map((tile) => (
-              <DraggableTile
-                key={tile.id}
-                id={tile.id}
-                letter={tile.letter}
-                points={tile.points}
-                initialX={tile.col * CELL_SIZE + CELL_SIZE / 2}
-                initialY={tile.row * CELL_SIZE + CELL_SIZE / 2}
-                svgRef={svgRef}
-                onLockViewport={viewport.lockDrag}
-                onUnlockViewport={viewport.unlockDrag}
-                onDragStart={() => handleDragStart(tile.id)}
-                onDrop={(row, col) => handleDrop(tile.id, row, col)}
-              />
-            ))}
-          </g>
-        )}
-      </Board>
-
-      <div
-        style={{
-          marginTop: 16,
-          padding: 12,
-          background: '#f5f5f5',
-          borderRadius: 4,
-          fontSize: 13,
-          fontFamily: 'monospace',
-        }}
-      >
-        <div><strong>Moves:</strong> {state.moveCount}</div>
-        <div><strong>Last Action:</strong> {state.lastAction}</div>
-        <div><strong>Tile Positions:</strong></div>
-        {state.tiles.map((t) => (
-          <div key={t.id} style={{ marginLeft: 16 }}>
-            {t.letter} ({t.points}pt) → row={t.row} col={t.col}
-          </div>
-        ))}
-        <button onClick={() => dispatch({ type: 'RESET' })} style={{ marginTop: 8 }}>
-          Reset Tiles
-        </button>
-      </div>
-    </div>
+    <HomeScreen
+      user={user}
+      username={profile?.username ?? ''}
+      avatarIcon={profile?.avatarUrl ?? null}
+      friends={friends}
+      games={games}
+      invitations={invitations}
+      loading={gamesLoading}
+      onStartGame={(friendUserId) => {
+        setNewGameFriendId(friendUserId);
+        setScreen('new-game');
+      }}
+      onAcceptInvitation={async (gameId) => {
+        const id = await acceptInvitation(gameId);
+        if (id) {
+          setActiveGameId(id);
+          setScreen('game');
+        }
+      }}
+      onDeclineInvitation={declineInvitation}
+      onOpenGame={(id) => {
+        setActiveGameId(id);
+        setScreen('game');
+      }}
+      onOpenProfile={() => setScreen('profile')}
+      onOpenStats={() => setScreen('stats')}
+    />
   );
 }

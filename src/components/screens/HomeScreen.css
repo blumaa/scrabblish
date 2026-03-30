@@ -1,0 +1,273 @@
+.home-container {
+  max-width: 500px;
+  margin: 0 auto;
+  padding: var(--space-4);
+  padding-top: calc(var(--space-4) + var(--sat));
+  padding-bottom: calc(var(--space-4) + var(--sab));
+  min-height: 100dvh;
+}
+
+.home-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-5);
+}
+
+.home-title {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+  color: var(--text-primary);
+}
+
+.home-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.home-stats-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.home-stats-btn:active {
+  color: var(--text-primary);
+}
+
+.home-view-all {
+  font-size: var(--text-xs);
+  color: var(--color-primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-weight: var(--weight-medium);
+  touch-action: manipulation;
+}
+
+/* Game result badges */
+.home-game-result {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  flex-shrink: 0;
+  margin-right: var(--space-3);
+}
+
+.home-game-result--W {
+  background: var(--color-valid);
+  color: var(--color-on-valid);
+}
+
+.home-game-result--L {
+  background: var(--color-error);
+  color: var(--text-primary);
+}
+
+.home-game-result--T {
+  background: var(--border-default);
+  color: var(--text-primary);
+}
+
+.home-game-finished {
+  cursor: default;
+}
+
+.home-loading {
+  text-align: center;
+  color: var(--text-muted);
+  padding: var(--space-6);
+}
+
+.home-section {
+  margin-bottom: var(--space-4);
+}
+
+.home-section-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-md);
+  font-weight: var(--weight-semi);
+  color: var(--text-primary);
+}
+
+/* Game rows */
+.home-game-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border-default);
+  text-align: left;
+  cursor: pointer;
+}
+
+.home-game-row:active {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+@media (hover: hover) {
+  .home-game-row:hover {
+    background: rgba(255, 255, 255, 0.04);
+  }
+}
+
+.home-game-row:last-child {
+  border-bottom: none;
+}
+
+.home-game-my-turn {
+  border-left: 3px solid var(--color-valid);
+  padding-left: calc(var(--space-3) - 3px);
+}
+
+.home-game-player {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1;
+  min-width: 0;
+}
+
+.home-game-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.home-game-opponent {
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-game-your-turn,
+.home-game-their-turn,
+.home-game-waiting {
+  flex-shrink: 0;
+}
+
+.home-game-langs {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.home-game-your-turn {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semi);
+  color: var(--color-valid);
+}
+
+.home-game-their-turn {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.home-game-score {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semi);
+  color: var(--color-accent);
+}
+
+.home-game-waiting {
+  font-size: var(--text-sm);
+  color: var(--color-accent);
+}
+
+/* Invitations */
+.home-invitation-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--border-default);
+}
+
+.home-invitation-row:last-child {
+  border-bottom: none;
+}
+
+.home-invitation-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.home-invitation-from {
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  color: var(--text-primary);
+}
+
+.home-invitation-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+/* Empty friends */
+.home-empty-friends {
+  text-align: center;
+  padding: var(--space-4) 0;
+  color: var(--text-muted);
+  font-size: var(--text-base);
+}
+
+.home-empty-friends .btn {
+  margin-top: var(--space-2);
+}
+
+/* Empty state */
+.home-empty-state {
+  text-align: center;
+}
+
+.home-tile-icon {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 56px;
+  height: 56px;
+  background: var(--tile-face);
+  border: 2px solid var(--tile-border);
+  border-radius: var(--radius-lg);
+  font-size: var(--text-4xl);
+  font-weight: var(--weight-bold);
+  color: var(--tile-letter);
+  margin-bottom: var(--space-4);
+}
+
+.home-empty-title {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semi);
+  color: var(--text-primary);
+  margin-bottom: var(--space-2);
+}
+
+.home-empty-text {
+  font-size: var(--text-base);
+  color: var(--text-muted);
+  line-height: 1.5;
+}

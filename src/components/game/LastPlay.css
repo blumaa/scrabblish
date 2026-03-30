@@ -1,0 +1,23 @@
+.last-play {
+  text-align: center;
+  font-size: 12px;
+  color: var(--color-ink-light);
+  padding: 2px 8px;
+  min-height: 18px;
+}
+
+.last-play-name {
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.last-play-word {
+  font-weight: 700;
+  color: var(--color-ink);
+  text-transform: uppercase;
+}
+
+.last-play-score {
+  font-weight: 700;
+  color: var(--color-valid);
+}

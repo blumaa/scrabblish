@@ -1,7 +1,7 @@
-import { useRef, useLayoutEffect, type RefObject } from 'react';
+import { useRef, useEffect, useLayoutEffect, type RefObject } from 'react';
 import gsap from 'gsap';
 import { Draggable } from 'gsap/Draggable';
-import { screenToSvgCoords, snapToGrid, CELL_SIZE } from '../../lib/svg-coords';
+import { screenToSvgCoords, svgCoordsToBoard, snapToGrid, CELL_SIZE, BOARD_PX } from '../../lib/svg-coords';
 
 gsap.registerPlugin(Draggable);
 
@@ -9,62 +9,84 @@ interface DraggableTileProps {
   id: string;
   letter: string;
   points: number;
+  isBlank?: boolean;
+  isPending?: boolean;
   initialX: number;
   initialY: number;
+  tileSize?: number;
   svgRef: RefObject<SVGSVGElement | null>;
+  zoomScale?: number;
+  zoomPanX?: number;
+  zoomPanY?: number;
   onLockViewport?: () => void;
   onUnlockViewport?: () => void;
-  onDragStart?: () => void;
-  onDragEnd?: (svgX: number, svgY: number) => void;
-  onDrop?: (row: number, col: number) => void;
+  onDrop?: (row: number, col: number) => boolean;
+  onRecall?: () => void;
 }
 
 export function DraggableTile({
   id,
   letter,
   points,
+  isBlank = false,
+  isPending = false,
   initialX,
   initialY,
+  tileSize = CELL_SIZE,
   svgRef,
+  zoomScale = 1,
+  zoomPanX = 0,
+  zoomPanY = 0,
   onLockViewport,
   onUnlockViewport,
-  onDragStart,
-  onDragEnd,
   onDrop,
+  onRecall,
 }: DraggableTileProps) {
   const groupRef = useRef<SVGGElement>(null);
   const draggableRef = useRef<Draggable | null>(null);
 
-  // Use refs for callbacks so GSAP closures always see latest values
-  // (React 19 StrictMode double-mount safe)
-  const onLockViewportRef = useRef(onLockViewport);
-  onLockViewportRef.current = onLockViewport;
-  const onUnlockViewportRef = useRef(onUnlockViewport);
-  onUnlockViewportRef.current = onUnlockViewport;
-  const onDragStartRef = useRef(onDragStart);
-  onDragStartRef.current = onDragStart;
-  const onDragEndRef = useRef(onDragEnd);
-  onDragEndRef.current = onDragEnd;
+  const onLockRef = useRef(onLockViewport);
+  const onUnlockRef = useRef(onUnlockViewport);
   const onDropRef = useRef(onDrop);
-  onDropRef.current = onDrop;
+  const onRecallRef = useRef(onRecall);
   const svgRefRef = useRef(svgRef);
-  svgRefRef.current = svgRef;
+  const zoomRef = useRef({ scale: zoomScale, panX: zoomPanX, panY: zoomPanY });
 
-  // Stable initial position (doesn't change after mount)
-  const initPos = useRef({ x: initialX - CELL_SIZE / 2, y: initialY - CELL_SIZE / 2 });
+  useEffect(() => {
+    onLockRef.current = onLockViewport;
+    onUnlockRef.current = onUnlockViewport;
+    onDropRef.current = onDrop;
+    onRecallRef.current = onRecall;
+    svgRefRef.current = svgRef;
+    zoomRef.current = { scale: zoomScale, panX: zoomPanX, panY: zoomPanY };
+  });
+
+  const initPos = useRef({ x: initialX - tileSize / 2, y: initialY - tileSize / 2 });
+
+  // Update GSAP position when props change (e.g., MOVE_PENDING_TILE)
+  useLayoutEffect(() => {
+    const el = groupRef.current;
+    if (!el) return;
+    const newX = initialX - tileSize / 2;
+    const newY = initialY - tileSize / 2;
+    if (newX !== initPos.current.x || newY !== initPos.current.y) {
+      initPos.current = { x: newX, y: newY };
+      gsap.set(el, { x: newX, y: newY });
+    }
+  }, [initialX, initialY, tileSize]);
 
   useLayoutEffect(() => {
     const el = groupRef.current;
     if (!el) return;
 
-    // Set initial transform via GSAP
     gsap.set(el, { x: initPos.current.x, y: initPos.current.y });
 
     const [instance] = Draggable.create(el, {
       type: 'x,y',
+      zIndexBoost: true,
+      minimumMovement: 0,
       onDragStart() {
-        onLockViewportRef.current?.();
-        onDragStartRef.current?.();
+        onLockRef.current?.();
       },
       onDragEnd() {
         const svg = svgRefRef.current.current;
@@ -73,25 +95,41 @@ export function DraggableTile({
         const rect = el.getBoundingClientRect();
         const centerScreenX = rect.left + rect.width / 2;
         const centerScreenY = rect.top + rect.height / 2;
-
         const svgCoords = screenToSvgCoords(svg, centerScreenX, centerScreenY);
-        const snapped = snapToGrid(svgCoords.x, svgCoords.y, CELL_SIZE);
 
-        // Animate snap to grid
-        gsap.to(el, {
-          x: snapped.x - CELL_SIZE / 2,
-          y: snapped.y - CELL_SIZE / 2,
-          duration: 0.15,
-          ease: 'power3.out',
-        });
+        // Check if tile is in the board area (SVG space)
+        // svgCoords are in root SVG space. BOARD_PX is the board boundary.
+        const inBoardSvgArea = svgCoords.y < BOARD_PX && svgCoords.y >= 0 &&
+                               svgCoords.x >= 0 && svgCoords.x < BOARD_PX;
 
-        onDragEndRef.current?.(snapped.x, snapped.y);
+        let handled = false;
 
-        const col = Math.floor(snapped.x / CELL_SIZE);
-        const row = Math.floor(snapped.y / CELL_SIZE);
-        onDropRef.current?.(row, col);
+        if (inBoardSvgArea) {
+          // Convert to board coords for grid snapping
+          const { scale, panX, panY } = zoomRef.current;
+          const boardCoords = svgCoordsToBoard(svgCoords.x, svgCoords.y, scale, panX, panY);
+          const snapped = snapToGrid(boardCoords.x, boardCoords.y, CELL_SIZE);
+          const col = Math.floor(snapped.x / CELL_SIZE);
+          const row = Math.floor(snapped.y / CELL_SIZE);
+          handled = onDropRef.current?.(row, col) ?? false;
+        }
 
-        onUnlockViewportRef.current?.();
+        if (!handled) {
+          // Not placed on a valid board cell — recall to rack or snap back
+          if (onRecallRef.current) {
+            onRecallRef.current();
+          } else {
+            // Rack tile: snap back to original position
+            gsap.to(el, {
+              x: initPos.current.x,
+              y: initPos.current.y,
+              duration: 0.2,
+              ease: 'power2.out',
+            });
+          }
+        }
+
+        onUnlockRef.current?.();
       },
     });
 
@@ -100,48 +138,51 @@ export function DraggableTile({
     return () => {
       instance.kill();
       draggableRef.current = null;
-      // Reset transform so React StrictMode re-mount can re-apply cleanly
       gsap.set(el, { clearProps: 'all' });
     };
-    // Empty deps: only run on mount/unmount. Callbacks accessed via refs.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const half = tileSize / 2;
+  const fontSize = tileSize * 0.48;
+  const ptsFontSize = tileSize * 0.2;
+
   return (
-    <g ref={groupRef} data-tile-id={id} style={{ cursor: 'grab' }}>
+    <g
+      ref={groupRef}
+      data-tile-id={id}
+      className={[isBlank && 'tile-blank', isPending && 'tile-pending'].filter(Boolean).join(' ') || undefined}
+      style={{ cursor: 'grab' }}
+      onPointerDown={(e) => e.stopPropagation()}
+    >
       <rect
-        width={CELL_SIZE - 4}
-        height={CELL_SIZE - 4}
+        width={tileSize - 4}
+        height={tileSize - 4}
         x={2}
         y={2}
-        rx={4}
-        fill="#f5e6c8"
-        stroke="#8b7355"
-        strokeWidth={1.5}
+        rx={tileSize * 0.08}
+        className="tile-bg"
       />
       <text
-        x={CELL_SIZE / 2}
-        y={CELL_SIZE / 2 + 2}
+        x={half}
+        y={half + 2}
         textAnchor="middle"
         dominantBaseline="middle"
-        fontSize={24}
-        fontWeight="bold"
-        fontFamily="Georgia, serif"
-        fill="#2c1810"
-        pointerEvents="none"
+        className="tile-letter"
+        fontSize={fontSize}
       >
-        {letter}
+        {letter || (isBlank ? '' : '')}
       </text>
-      <text
-        x={CELL_SIZE - 8}
-        y={CELL_SIZE - 8}
-        textAnchor="end"
-        fontSize={10}
-        fill="#6b5b4a"
-        pointerEvents="none"
-      >
-        {points}
-      </text>
+      {!isBlank && points > 0 && (
+        <text
+          x={tileSize - 6}
+          y={tileSize - 6}
+          textAnchor="end"
+          className="tile-points"
+          fontSize={ptsFontSize}
+        >
+          {points}
+        </text>
+      )}
     </g>
   );
 }

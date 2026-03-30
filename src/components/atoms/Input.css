@@ -1,0 +1,23 @@
+.input {
+  padding: var(--space-3);
+  font-size: var(--text-md); /* 16px prevents iOS zoom */
+  color: var(--text-primary);
+  border: 1.5px solid var(--input-border);
+  border-radius: var(--input-radius);
+  outline: none;
+  background: var(--input-bg);
+  width: 100%;
+  -webkit-appearance: none;
+}
+
+.input::placeholder {
+  color: var(--text-faint);
+}
+
+.input:focus {
+  border-color: var(--input-focus);
+}
+
+.input--error {
+  border-color: var(--color-error);
+}

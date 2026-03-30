@@ -1,0 +1,21 @@
+.turn-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  display: flex;
+  justify-content: center;
+  padding: calc(var(--sat) + var(--space-2)) var(--space-4) var(--space-2);
+  pointer-events: none;
+}
+
+.turn-banner-text {
+  background: var(--color-valid);
+  color: var(--color-on-valid);
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
+  padding: var(--space-2) var(--space-5);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}

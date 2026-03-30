@@ -12,6 +12,7 @@ A 2-player turn-based Scrabble app. **Unique selling point: Multi-language games
 
 ## 2. Tech Stack
 
+- **Design:** Mobile-first. Every screen, component, and interaction is designed for phone screens first (iPhone SE minimum), then scales up to desktop. The gameboard and tile drag UX are the #1 mobile priority.
 - **Frontend:** React 19 + TypeScript + GSAP (Animations & Draggable)
 - **Rendering:** Hybrid SVG + HTML — SVG for board & tiles only, HTML/CSS for controls, scores, overlays, forms, navigation
 - **Backend:** Supabase Free Tier (email+password auth, Realtime, Edge Functions)
@@ -276,6 +277,16 @@ The 50ms `PAN_CANDIDATE` delay prevents a pinch's first finger from activating p
 
 ## 7. Interaction & UX
 
+**MOBILE-FIRST is mandatory.** Every screen, interaction, and layout is designed for phone screens first. Key mobile design rules:
+- All touch targets minimum 44px (Apple HIG)
+- Font size minimum 16px on inputs (prevents iOS auto-zoom)
+- `100dvh` not `100vh` (accounts for mobile browser chrome)
+- Safe area insets for notch/home indicator (`env(safe-area-inset-*)`)
+- `touch-action: none` on game SVG (prevents browser scroll/zoom interference)
+- Test on iPhone SE (320px wide) as the smallest target
+- Board + rack + controls must all fit on screen without scrolling during gameplay
+- Gameboard is the #1 mobile priority — drag, zoom, pan must feel native
+
 ### A. Drag-and-Drop (GSAP Draggable) — Primary Interaction
 - Rack tiles are draggable SVG groups with snap-to-grid on the board
 - **Screen-to-SVG coordinate conversion** via `getScreenCTM().inverse()`
@@ -285,6 +296,11 @@ The 50ms `PAN_CANDIDATE` delay prevents a pinch's first finger from activating p
 - Returned tiles snap back to their original rack position (not appended to end)
 - Haptic feedback on iOS via `@capacitor/haptics`
 - All animations in `gsap.context()` with explicit `draggable.kill()` cleanup
+
+### A2. Rack Tile Management
+- **Shuffle button:** Randomly reorder tiles in the rack (local only, no server call). Helps visualize word combos.
+- **Manual reorder:** Drag tiles within the rack to rearrange them. GSAP Draggable with horizontal snap-to-slot. Essential for testing word combinations before placing.
+- Rack order is purely client-side — the server doesn't care about rack ordering.
 
 ### B. The Magnifier
 On touch devices, when dragging a tile, show a zoomed-in preview ~100px above the touch point. Implemented as a **separate small SVG element** (not `<use>`) with its own viewBox showing a ~3×3 tile area around the drag position. Renders only ~9 squares + nearby tiles (~20 DOM nodes). Positioned absolutely via CSS. This avoids the Safari `<use>` shadow DOM rendering bugs.
@@ -310,7 +326,28 @@ On touch devices, when dragging a tile, show a zoomed-in preview ~100px above th
 - Tap target is the whole row
 - Realtime subscription updates the list live (two subscriptions: one for player1_id, one for player2_id — Supabase Realtime doesn't support OR filters)
 
-### F. Onboarding & Empty States
+### F. New Game Flow (Recent Players, NOT Friends List)
+No friends system. A **Recent Players** list auto-populated from game history (zero new tables, query existing `games`).
+
+**Home screen = game list:**
+- Active games listed with opponent name, score, whose turn
+- "+ NEW GAME" button at bottom (thumb zone)
+
+**New Game bottom sheet (slides up, not new screen):**
+1. **Recent Players** at top — tap "PLAY" next to name → game created instantly, opponent gets push notification. **Two taps** for the primary use case.
+2. **Share Invite Link** — creates game, opens OS share sheet with deep link (`scrabblish.app/join/ABC123`). Shows link + fallback code.
+3. **Enter Join Code** — 6-digit OTP-style input with auto-advance, auto-uppercase, paste support.
+
+**Rematch:** Game over screen has "REMATCH" button → new game with same opponent, one tap.
+
+**Recent Players query** (no new tables):
+```sql
+SELECT DISTINCT ON (opponent_id) opponent_id, display_name
+FROM games WHERE player1_id = $1 OR player2_id = $1
+ORDER BY opponent_id, created_at DESC LIMIT 10;
+```
+
+### F2. Onboarding & Empty States
 - **Empty home screen:** Clear primary CTA ("Start a Game"), brief tagline explaining bilingual twist, "Join a Game" secondary action. No empty list — use space for value proposition.
 - **Create game screen:** Inline explanation: "Words valid in ANY selected language count!" Example: "HAND = valid in English AND German"
 - **First move:** Tooltip on center star on player's first-ever game: "Place your first word here"
@@ -328,7 +365,7 @@ On touch devices, when dragging a tile, show a zoomed-in preview ~100px above th
 ### H. Visual Design Direction
 - **Typography:** Distinctive slab serif or monospace for tile letters (game-feel, not spreadsheet). Clean sans-serif for UI chrome.
 - **Color palette:** Decide before Phase 3. Classic Scrabble convention (cream base, red=TW, pink=DW, dark blue=TL, light blue=DL) is recognizable — can be fresh-ened with modern palette.
-- **Layout:** Board gets 65-70% of screen height, rack 15%, controls + score 15-20%. Scoreboard is a minimal HTML top bar above the SVG.
+- **Layout (mobile-first):** On phone screens: score bar ~40px top, board fills remaining width (square, edge-to-edge), rack ~60px below board, controls ~50px bottom. No scrolling during gameplay — everything visible at once. On larger screens: board centered with max-width, more padding.
 
 ## 8. State Management Architecture
 

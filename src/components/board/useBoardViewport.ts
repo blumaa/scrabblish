@@ -1,74 +1,62 @@
 import { useReducer, useCallback, useRef } from 'react';
-
-export interface ViewBox {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
+import { BOARD_PX } from '../../lib/svg-coords';
 
 export type GestureState =
   | 'IDLE'
   | 'PAN_CANDIDATE'
   | 'PANNING'
-  | 'PINCHING'
   | 'TILE_DRAGGING';
 
 interface ViewportState {
-  viewBox: ViewBox;
+  // Zoom: 1 = full board, 2.5 = zoomed in (~6x6 cells visible)
+  scale: number;
+  // Pan offset in SVG units (applied before scale)
+  panX: number;
+  panY: number;
   gestureState: GestureState;
-  isZoomedIn: boolean;
-  dragLocked: boolean; // viewBox is frozen during tile drag
+  dragLocked: boolean;
 }
 
 type ViewportAction =
-  | { type: 'ZOOM_IN'; focusX: number; focusY: number }
+  | { type: 'ZOOM_TO'; x: number; y: number; scale: number; force?: boolean }
   | { type: 'ZOOM_OUT' }
-  | { type: 'SET_VIEWBOX'; viewBox: ViewBox }
-  | { type: 'PAN'; dx: number; dy: number }
+  | { type: 'PAN_TO'; panX: number; panY: number }
   | { type: 'SET_GESTURE'; state: GestureState }
   | { type: 'LOCK_DRAG' }
   | { type: 'UNLOCK_DRAG' };
 
-const FULL_VIEWBOX: ViewBox = { x: 0, y: 0, width: 750, height: 750 };
-const ZOOM_SIZE = 300; // ~6x6 cells visible when zoomed in
+const MIN_SCALE = 1;
+const MAX_SCALE = 2.5;
 
-function clampViewBox(vb: ViewBox): ViewBox {
-  const maxX = 750 - vb.width;
-  const maxY = 750 - vb.height;
+function clampPan(panX: number, panY: number, scale: number): { panX: number; panY: number } {
+  // When zoomed in, the visible area is BOARD_PX / scale wide.
+  // Pan range: 0 to BOARD_PX - (BOARD_PX / scale)
+  const maxPan = BOARD_PX - BOARD_PX / scale;
   return {
-    ...vb,
-    x: Math.max(0, Math.min(maxX, vb.x)),
-    y: Math.max(0, Math.min(maxY, vb.y)),
+    panX: Math.max(0, Math.min(maxPan, panX)),
+    panY: Math.max(0, Math.min(maxPan, panY)),
   };
 }
 
 function viewportReducer(state: ViewportState, action: ViewportAction): ViewportState {
   switch (action.type) {
-    case 'ZOOM_IN': {
-      if (state.dragLocked) return state;
-      const vb: ViewBox = {
-        x: action.focusX - ZOOM_SIZE / 2,
-        y: action.focusY - ZOOM_SIZE / 2,
-        width: ZOOM_SIZE,
-        height: ZOOM_SIZE,
-      };
-      return { ...state, viewBox: clampViewBox(vb), isZoomedIn: true };
+    case 'ZOOM_TO': {
+      if (state.dragLocked && !action.force) return state;
+      const scale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, action.scale));
+      // Center the zoom on the target point
+      const visibleW = BOARD_PX / scale;
+      const panX = action.x - visibleW / 2;
+      const panY = action.y - visibleW / 2;
+      const clamped = clampPan(panX, panY, scale);
+      return { ...state, scale, panX: clamped.panX, panY: clamped.panY };
     }
     case 'ZOOM_OUT':
       if (state.dragLocked) return state;
-      return { ...state, viewBox: FULL_VIEWBOX, isZoomedIn: false };
-    case 'SET_VIEWBOX':
+      return { ...state, scale: 1, panX: 0, panY: 0 };
+    case 'PAN_TO': {
       if (state.dragLocked) return state;
-      return { ...state, viewBox: clampViewBox(action.viewBox) };
-    case 'PAN': {
-      if (state.dragLocked) return state;
-      const vb = {
-        ...state.viewBox,
-        x: state.viewBox.x + action.dx,
-        y: state.viewBox.y + action.dy,
-      };
-      return { ...state, viewBox: clampViewBox(vb) };
+      const clamped = clampPan(action.panX, action.panY, state.scale);
+      return { ...state, panX: clamped.panX, panY: clamped.panY };
     }
     case 'SET_GESTURE':
       return { ...state, gestureState: action.state };
@@ -82,64 +70,72 @@ function viewportReducer(state: ViewportState, action: ViewportAction): Viewport
 }
 
 const initialState: ViewportState = {
-  viewBox: FULL_VIEWBOX,
+  scale: 1,
+  panX: 0,
+  panY: 0,
   gestureState: 'IDLE',
-  isZoomedIn: false,
   dragLocked: false,
 };
 
 export function useBoardViewport() {
   const [state, dispatch] = useReducer(viewportReducer, initialState);
   const lastTapRef = useRef(0);
-  const panStartRef = useRef<{ x: number; y: number; vbX: number; vbY: number } | null>(null);
+  const panStartRef = useRef<{ screenX: number; screenY: number; panX: number; panY: number } | null>(null);
 
-  const viewBoxString = `${state.viewBox.x} ${state.viewBox.y} ${state.viewBox.width} ${state.viewBox.height}`;
+  const isZoomedIn = state.scale > 1.1;
+  const boardTransform = buildTransformString(state.scale, state.panX, state.panY);
 
   const handleDoubleTap = useCallback((svgX: number, svgY: number) => {
     if (state.dragLocked) return;
-    if (state.isZoomedIn) {
+    if (isZoomedIn) {
       dispatch({ type: 'ZOOM_OUT' });
     } else {
-      dispatch({ type: 'ZOOM_IN', focusX: svgX, focusY: svgY });
+      dispatch({ type: 'ZOOM_TO', x: svgX, y: svgY, scale: MAX_SCALE });
     }
-  }, [state.isZoomedIn, state.dragLocked]);
+  }, [isZoomedIn, state.dragLocked]);
+
+  const zoomToPosition = useCallback((svgX: number, svgY: number) => {
+    dispatch({ type: 'ZOOM_TO', x: svgX, y: svgY, scale: MAX_SCALE, force: true });
+  }, []);
 
   const handlePointerDown = useCallback((e: React.PointerEvent<SVGSVGElement>) => {
     if (state.dragLocked) return;
 
-    // Check if the pointer landed on a draggable tile — if so, skip pan.
-    // Walk up from the event target to find a [data-tile-id] ancestor.
+    // Skip if pointer is on a tile
     const target = e.target as Element;
-    const tileEl = target.closest?.('[data-tile-id]');
-    if (tileEl) return; // Let GSAP Draggable handle this pointer, don't pan
+    if (target.closest?.('[data-tile-id]')) return;
+
+    // Check if the pointer is in the board area (not rack)
+    const svg = e.currentTarget;
+    const ctm = svg.getScreenCTM();
+    if (!ctm) return;
+    const inv = ctm.inverse();
+    const svgY = inv.b * e.clientX + inv.d * e.clientY + inv.f;
+    if (svgY >= BOARD_PX) return; // Click in rack area — ignore for pan/zoom
 
     const now = Date.now();
     if (now - lastTapRef.current < 300) {
-      // Double tap
-      const svg = e.currentTarget;
-      const ctm = svg.getScreenCTM();
-      if (ctm) {
-        const inv = ctm.inverse();
-        const svgX = inv.a * e.clientX + inv.c * e.clientY + inv.e;
-        const svgY = inv.b * e.clientX + inv.d * e.clientY + inv.f;
-        handleDoubleTap(svgX, svgY);
-      }
+      const svgX = inv.a * e.clientX + inv.c * e.clientY + inv.e;
+      // Convert screen-space SVG coords to board-space coords (account for current zoom)
+      const boardX = svgX / state.scale + state.panX;
+      const boardY = svgY / state.scale + state.panY;
+      handleDoubleTap(boardX, boardY);
       lastTapRef.current = 0;
       return;
     }
     lastTapRef.current = now;
 
-    // Start pan candidate (only on empty board area)
-    if (state.isZoomedIn) {
+    // Start pan if zoomed in
+    if (isZoomedIn) {
       panStartRef.current = {
-        x: e.clientX,
-        y: e.clientY,
-        vbX: state.viewBox.x,
-        vbY: state.viewBox.y,
+        screenX: e.clientX,
+        screenY: e.clientY,
+        panX: state.panX,
+        panY: state.panY,
       };
       dispatch({ type: 'SET_GESTURE', state: 'PAN_CANDIDATE' });
     }
-  }, [state.dragLocked, state.isZoomedIn, state.viewBox.x, state.viewBox.y, handleDoubleTap]);
+  }, [state.dragLocked, state.scale, state.panX, state.panY, isZoomedIn, handleDoubleTap]);
 
   const handlePointerMove = useCallback((e: React.PointerEvent<SVGSVGElement>) => {
     if (!panStartRef.current) return;
@@ -147,24 +143,18 @@ export function useBoardViewport() {
     if (state.dragLocked) return;
 
     const svg = e.currentTarget;
-    const ctm = svg.getScreenCTM();
-    if (!ctm) return;
-
-    // Scale factor: how many SVG units per screen pixel
-    const scale = state.viewBox.width / svg.clientWidth;
-    const dx = -(e.clientX - panStartRef.current.x) * scale;
-    const dy = -(e.clientY - panStartRef.current.y) * scale;
+    // Convert screen pixel movement to SVG unit movement
+    const svgUnitsPerPixel = BOARD_PX / svg.clientWidth;
+    const dx = -(e.clientX - panStartRef.current.screenX) * svgUnitsPerPixel / state.scale;
+    const dy = -(e.clientY - panStartRef.current.screenY) * svgUnitsPerPixel / state.scale;
 
     dispatch({
-      type: 'SET_VIEWBOX',
-      viewBox: {
-        ...state.viewBox,
-        x: panStartRef.current.vbX + dx,
-        y: panStartRef.current.vbY + dy,
-      },
+      type: 'PAN_TO',
+      panX: panStartRef.current.panX + dx,
+      panY: panStartRef.current.panY + dy,
     });
     dispatch({ type: 'SET_GESTURE', state: 'PANNING' });
-  }, [state.gestureState, state.dragLocked, state.viewBox]);
+  }, [state.gestureState, state.dragLocked, state.scale]);
 
   const handlePointerUp = useCallback(() => {
     panStartRef.current = null;
@@ -177,16 +167,31 @@ export function useBoardViewport() {
   const unlockDrag = useCallback(() => dispatch({ type: 'UNLOCK_DRAG' }), []);
 
   return {
-    viewBox: state.viewBox,
-    viewBoxString,
-    isZoomedIn: state.isZoomedIn,
+    scale: state.scale,
+    panX: state.panX,
+    panY: state.panY,
+    isZoomedIn,
     gestureState: state.gestureState,
     dragLocked: state.dragLocked,
+    boardTransform,
     lockDrag,
     unlockDrag,
+    zoomToPosition,
     dispatch,
     handlePointerDown,
     handlePointerMove,
     handlePointerUp,
   };
+}
+
+export function buildTransformString(
+  scale: number,
+  panX: number,
+  panY: number
+): string | undefined {
+  if (scale === 1 && panX === 0 && panY === 0) return undefined;
+  // Use scale-then-translate form so panX, panY, and scale are independent
+  // in the transform string — this allows smooth linear interpolation by GSAP
+  // without the non-linear multiplication artifact of translate(-panX*scale, ...) scale(s)
+  return `scale(${scale}) translate(${-panX}, ${-panY})`;
 }

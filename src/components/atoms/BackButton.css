@@ -1,0 +1,9 @@
+.back-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: var(--text-base);
+  padding: var(--space-1) 0;
+  margin-bottom: var(--space-2);
+  touch-action: manipulation;
+}

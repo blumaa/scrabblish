@@ -1,0 +1,158 @@
+/* ═══════════════════════════════════════════
+   SCRABBLISH DESIGN TOKENS
+   Moonlit Palette
+
+   Core = raw values
+   Semantic = purpose, references core
+   Components use semantic tokens only
+   ═══════════════════════════════════════════ */
+
+:root {
+  /* ── CORE ── */
+
+  --night:         #1e1d22;
+  --night-surface: #28272d;
+  --night-raised:  #32313a;
+  --night-well:    #24232a;
+  --night-bright:  #38363f;
+
+  --moon:          #e2dfd8;
+  --moon-mid:      #b0aca3;
+  --moon-dim:      #807c74;
+  --moon-faint:    #5c5953;
+
+  --stone:         #3e3d45;
+  --stone-strong:  #57555f;
+
+  --ruby:          #7a3b3b;
+  --orchid:        #6b5a9e;
+  --steel:         #3d6e8a;
+  --ice:           #8ab4c4;
+  --ember:         #c4785a;
+
+  --sage:          #6dbf7a;
+  --coral:         #b85c5c;
+  --coral-bright:  #d06a6a;
+  --slate-blue:    #5a7a9e;
+  --slate-bright:  #7094b4;
+  --fog:           #484650;
+
+  --amber:         #d4a854;
+  --amber-dim:     #b08a3c;
+
+  /* ── SEMANTIC ── */
+
+  --bg-app:        var(--night);
+  --bg-surface:    var(--night-surface);
+  --bg-board:      var(--night-raised);
+  --bg-rack:       var(--night-well);
+  --bg-active:     var(--amber-dim);
+  --bg-overlay:    rgba(10, 10, 14, 0.65);
+
+  --text-primary:   var(--moon);
+  --text-secondary: var(--moon-mid);
+  --text-muted:     var(--moon-dim);
+  --text-faint:     var(--moon-faint);
+  --text-error:     var(--coral-bright);
+
+  --border-default: var(--stone);
+  --border-strong:  var(--stone-strong);
+
+  --color-primary:       var(--slate-blue);
+  --color-primary-hover: var(--slate-bright);
+  --color-valid:         var(--sage);
+  --color-accent:        var(--amber);
+  --color-accent-light:  var(--amber-dim);
+  --color-error:         var(--coral);
+  --color-on-primary:    var(--moon);
+  --color-on-valid:      var(--night);
+
+  --color-board:       var(--night-raised);
+  --color-rack:        var(--night-well);
+  --color-surface:     var(--night-surface);
+  --color-ink:         var(--moon);
+  --color-ink-medium:  var(--moon-mid);
+  --color-ink-light:   var(--moon-dim);
+  --color-ink-faint:   var(--moon-faint);
+
+  --color-tw:          var(--ruby);
+  --color-tw-text:     var(--moon);
+  --color-dw:          var(--orchid);
+  --color-dw-text:     var(--moon);
+  --color-tl:          var(--steel);
+  --color-tl-text:     var(--moon);
+  --color-dl:          var(--ice);
+  --color-dl-text:     var(--night);
+  --color-center-star: var(--ember);
+
+  --tile-face:         var(--night-bright);
+  --tile-border:       var(--stone-strong);
+  --tile-letter:       var(--moon);
+  --color-tile-face:   var(--night-bright);
+  --color-tile-border: var(--stone-strong);
+  --color-tile-letter: var(--moon);
+  --color-tile-points: var(--moon-mid);
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  --text-xs:   10px;
+  --text-sm:   12px;
+  --text-base: 14px;
+  --text-md:   16px;
+  --text-lg:   18px;
+  --text-xl:   20px;
+  --text-2xl:  24px;
+  --text-3xl:  28px;
+  --text-4xl:  32px;
+  --weight-regular: 400;
+  --weight-medium:  500;
+  --weight-semi:    600;
+  --weight-bold:    700;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  --radius-sm:   4px;
+  --radius-md:   6px;
+  --radius-lg:   8px;
+  --radius-xl:   12px;
+  --radius-full: 50%;
+
+  --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 2px 12px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+
+  --touch-min: 44px;
+  --touch-sm:  36px;
+  --opacity-disabled: 0.45;
+
+  --btn-primary-bg:    var(--slate-blue);
+  --btn-primary-text:  var(--moon);
+  --btn-secondary-bg:  var(--fog);
+  --btn-secondary-text: var(--moon-mid);
+  --btn-danger-bg:     var(--coral);
+  --btn-danger-text:   var(--moon);
+  --btn-ghost-text:    var(--moon-dim);
+
+  --card-bg:     var(--night-surface);
+  --card-radius: var(--radius-xl);
+  --card-shadow: var(--shadow-md);
+
+  --input-bg:     var(--night-raised);
+  --input-border: var(--stone);
+  --input-focus:  var(--slate-blue);
+  --input-radius: var(--radius-lg);
+
+  --avatar-bg:     var(--fog);
+  --avatar-border: var(--stone-strong);
+  --avatar-text:   var(--moon);
+
+  --sat: env(safe-area-inset-top);
+  --sar: env(safe-area-inset-right);
+  --sab: env(safe-area-inset-bottom);
+  --sal: env(safe-area-inset-left);
+}

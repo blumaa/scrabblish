@@ -1,0 +1,58 @@
+.skeleton {
+  background: var(--bg-surface);
+  border-radius: var(--radius-md);
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.04), transparent);
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.skeleton--text {
+  height: 14px;
+  width: 60%;
+  margin-bottom: var(--space-2);
+}
+
+.skeleton--card {
+  height: 80px;
+  width: 100%;
+  margin-bottom: var(--space-3);
+  border-radius: var(--radius-lg);
+}
+
+.skeleton--circle {
+  border-radius: var(--radius-full);
+}
+
+.skeleton--board {
+  aspect-ratio: 1 / 1;
+  width: 100%;
+  border-radius: var(--radius-lg);
+  background-image:
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent calc(33.33% - 0.5px),
+      rgba(255, 255, 255, 0.03) calc(33.33% - 0.5px),
+      rgba(255, 255, 255, 0.03) calc(33.33% + 0.5px)
+    ),
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent calc(33.33% - 0.5px),
+      rgba(255, 255, 255, 0.03) calc(33.33% - 0.5px),
+      rgba(255, 255, 255, 0.03) calc(33.33% + 0.5px)
+    );
+  background-color: var(--bg-surface);
+}

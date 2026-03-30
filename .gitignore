@@ -22,3 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# iOS
+ios/App/Pods
+ios/DerivedData
+.claude
+PLAN.md
+CLAUDE.md
+.tool-versions

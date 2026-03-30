@@ -1,0 +1,35 @@
+import type { TileDefinition } from '../types/game';
+
+// Standard German Scrabble tile distribution (102 tiles)
+export const TILES_DE: TileDefinition[] = [
+  { letter: '', points: 0, count: 2 },    // Blanks
+  { letter: 'A', points: 1, count: 5 },
+  { letter: 'Ä', points: 6, count: 1 },
+  { letter: 'B', points: 3, count: 2 },
+  { letter: 'C', points: 4, count: 2 },
+  { letter: 'D', points: 1, count: 4 },
+  { letter: 'E', points: 1, count: 15 },
+  { letter: 'F', points: 4, count: 2 },
+  { letter: 'G', points: 2, count: 3 },
+  { letter: 'H', points: 2, count: 4 },
+  { letter: 'I', points: 1, count: 6 },
+  { letter: 'J', points: 6, count: 1 },
+  { letter: 'K', points: 4, count: 2 },
+  { letter: 'L', points: 2, count: 3 },
+  { letter: 'M', points: 3, count: 4 },
+  { letter: 'N', points: 1, count: 9 },
+  { letter: 'O', points: 2, count: 3 },
+  { letter: 'Ö', points: 8, count: 1 },
+  { letter: 'P', points: 4, count: 1 },
+  { letter: 'Q', points: 10, count: 1 },
+  { letter: 'R', points: 1, count: 6 },
+  { letter: 'S', points: 1, count: 7 },
+  { letter: 'T', points: 1, count: 6 },
+  { letter: 'U', points: 1, count: 6 },
+  { letter: 'Ü', points: 6, count: 1 },
+  { letter: 'V', points: 6, count: 1 },
+  { letter: 'W', points: 3, count: 1 },
+  { letter: 'X', points: 8, count: 1 },
+  { letter: 'Y', points: 10, count: 1 },
+  { letter: 'Z', points: 3, count: 1 },
+];

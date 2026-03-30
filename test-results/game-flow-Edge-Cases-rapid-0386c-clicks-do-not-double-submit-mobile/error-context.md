@@ -1,0 +1,114 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]: Player 1
+      - generic [ref=e7]: "4"
+    - generic [ref=e8]:
+      - generic [ref=e9]: "103"
+      - generic [ref=e10]: tiles
+    - generic [ref=e11]:
+      - generic [ref=e12]: Player 2 (you)
+      - generic [ref=e13]: "0"
+  - generic [ref=e14]: Player 1 played NA for 4 pts
+  - img [ref=e17]:
+    - generic [ref=e19]:
+      - generic:
+        - generic: TW
+        - generic: DL
+        - generic: TW
+        - generic: DL
+        - generic: TW
+        - generic: DW
+        - generic: TL
+        - generic: TL
+        - generic: DW
+        - generic: DW
+        - generic: DL
+        - generic: DL
+        - generic: DW
+        - generic: DL
+        - generic: DW
+        - generic: DL
+        - generic: DW
+        - generic: DL
+        - generic: DW
+        - generic: DW
+        - generic: TL
+        - generic: TL
+        - generic: TL
+        - generic: TL
+        - generic: DL
+        - generic: DL
+        - generic: DL
+        - generic: DL
+        - generic: TW
+        - generic: DL
+        - generic: ★
+        - generic: DL
+        - generic: TW
+        - generic: DL
+        - generic: DL
+        - generic: DL
+        - generic: DL
+        - generic: TL
+        - generic: TL
+        - generic: TL
+        - generic: TL
+        - generic: DW
+        - generic: DW
+        - generic: DL
+        - generic: DW
+        - generic: DL
+        - generic: DW
+        - generic: DL
+        - generic: DW
+        - generic: DL
+        - generic: DL
+        - generic: DW
+        - generic: DW
+        - generic: TL
+        - generic: TL
+        - generic: DW
+        - generic: TW
+        - generic: DL
+        - generic: TW
+        - generic: DL
+        - generic: TW
+      - generic [ref=e20]:
+        - generic [ref=e21]:
+          - generic: "N"
+          - generic: "1"
+        - generic [ref=e23]:
+          - generic: A
+          - generic: "1"
+    - generic [ref=e25]:
+      - generic [ref=e26]:
+        - generic: R
+        - generic: "1"
+      - generic [ref=e28]:
+        - generic: R
+        - generic: "1"
+      - generic [ref=e30]:
+        - generic: O
+        - generic: "2"
+      - generic [ref=e32]:
+        - generic: U
+        - generic: "1"
+      - generic [ref=e34]:
+        - generic: O
+        - generic: "2"
+      - generic [ref=e36]:
+        - generic: E
+        - generic: "1"
+      - generic [ref=e38]:
+        - generic: D
+        - generic: "2"
+  - generic [ref=e40]:
+    - button "Submit" [disabled] [ref=e41]
+    - button "Recall" [disabled] [ref=e42]
+    - button "Shuffle" [ref=e43] [cursor=pointer]
+    - button "Swap" [ref=e44] [cursor=pointer]
+```
