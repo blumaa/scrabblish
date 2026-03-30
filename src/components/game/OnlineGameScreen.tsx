@@ -50,7 +50,7 @@ export function OnlineGameScreen() {
   const displayRack = (shuffledRack && shuffledRack.length === rack.length) ? shuffledRack : rack;
 
   const myTurn = serverState?.currentTurnPlayerId === userId;
-  const firstMove = serverState?.moveNumber === 0;
+  const firstMove = serverState?.board.every((row) => row.every((cell) => cell === null)) ?? true;
   const me = serverState?.myPlayerId === serverState?.player1.id ? serverState?.player1 : serverState?.player2;
 
   const interaction = useGameInteraction({

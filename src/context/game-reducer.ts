@@ -225,7 +225,7 @@ export function isMyTurn(state: GameState): boolean {
 }
 
 export function isFirstMove(state: GameState): boolean {
-  return state.moveNumber === 0;
+  return state.board.every((row) => row.every((cell) => cell === null));
 }
 
 export function isGameOver(state: GameState): boolean {

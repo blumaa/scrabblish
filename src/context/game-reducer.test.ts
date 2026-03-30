@@ -363,12 +363,20 @@ describe('isMyTurn', () => {
 });
 
 describe('isFirstMove', () => {
-  it('returns true when moveNumber is 0', () => {
+  it('returns true when board is empty (moveNumber 0)', () => {
     expect(isFirstMove(setupActiveGame())).toBe(true);
   });
 
-  it('returns false when moveNumber > 0', () => {
-    const state = { ...setupActiveGame(), moveNumber: 3 };
+  it('returns true when board is empty even after swap (moveNumber > 0)', () => {
+    // MDS-243: swap on first move increments moveNumber but board is still empty
+    const state = { ...setupActiveGame(), moveNumber: 2 };
+    expect(isFirstMove(state)).toBe(true);
+  });
+
+  it('returns false when board has tiles', () => {
+    const state = setupActiveGame();
+    state.board[7][7] = { id: 't1', letter: 'A', points: 1, isBlank: false, row: 7, col: 7 };
+    state.moveNumber = 1;
     expect(isFirstMove(state)).toBe(false);
   });
 });
