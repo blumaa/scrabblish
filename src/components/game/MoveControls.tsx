@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { Spinner } from '../atoms/Spinner';
 import './MoveControls.css';
 
@@ -35,15 +35,8 @@ export function MoveControls({
   onCancelSwap,
   showConfirmOverride,
 }: MoveControlsProps) {
-  const [showConfirm, setShowConfirm] = useState(showConfirmOverride ?? false);
-  const prevSyncing = useRef(syncing);
-
-  useEffect(() => {
-    if (prevSyncing.current && !syncing && showConfirm) {
-      setShowConfirm(false);
-    }
-    prevSyncing.current = syncing;
-  }, [syncing, showConfirm]);
+  const [showConfirmState, setShowConfirm] = useState(showConfirmOverride ?? false);
+  const showConfirm = showConfirmState && swapMode;
 
   if (!isMyTurn) {
     return (
