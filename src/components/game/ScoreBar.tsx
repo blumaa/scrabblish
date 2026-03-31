@@ -1,6 +1,6 @@
 import { useRef, useEffect } from "react";
 import gsap from "gsap";
-import type { PlayerState, Language } from "../../types/game";
+import type { PlayerState, Language, GameStatus } from "../../types/game";
 import "./ScoreBar.css";
 
 interface ScoreBarProps {
@@ -11,6 +11,7 @@ interface ScoreBarProps {
   tilesRemaining: number;
   totalTiles?: number;
   languages?: Language[];
+  gameStatus?: GameStatus;
   onBack?: () => void;
 }
 
@@ -22,6 +23,7 @@ export function ScoreBar({
   tilesRemaining,
   totalTiles,
   languages,
+  gameStatus,
   onBack,
 }: ScoreBarProps) {
   return (
@@ -48,6 +50,8 @@ export function ScoreBar({
           player={player1}
           isCurrentTurn={currentTurnPlayerId === player1.id}
           isMe={myPlayerId === player1.id}
+          tilesRemaining={tilesRemaining}
+          gameStatus={gameStatus}
         />
         <div className="score-bar-center">
           {totalTiles ? (
@@ -78,6 +82,8 @@ export function ScoreBar({
           player={player2}
           isCurrentTurn={currentTurnPlayerId === player2.id}
           isMe={myPlayerId === player2.id}
+          tilesRemaining={tilesRemaining}
+          gameStatus={gameStatus}
         />
       </div>
     </div>
@@ -88,11 +94,17 @@ function PlayerScore({
   player,
   isCurrentTurn,
   isMe,
+  tilesRemaining,
+  gameStatus,
 }: {
   player: PlayerState;
   isCurrentTurn: boolean;
   isMe: boolean;
+  tilesRemaining: number;
+  gameStatus?: GameStatus;
 }) {
+  const isLastRound = tilesRemaining === 0 && gameStatus !== 'finished';
+  const bannerText = isLastRound ? (isCurrentTurn ? 'Last turn' : 'Done') : null;
   const scoreRef = useRef<HTMLSpanElement>(null);
   const prevScoreRef = useRef(player.score);
 
@@ -141,6 +153,13 @@ function PlayerScore({
         {player.displayName || "Player"}
         {isMe && <span className="player-me"> (you)</span>}
       </span>
+      {bannerText ? (
+        <span className={`player-banner ${bannerText === 'Last turn' ? 'player-banner-last' : 'player-banner-done'}`}>
+          {bannerText}
+        </span>
+      ) : (
+        <div className="player-banner-spacer" />
+      )}
       <span className="player-points" ref={scoreRef}>
         {player.score}
       </span>

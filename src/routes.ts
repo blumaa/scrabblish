@@ -5,5 +5,4 @@ export const ROUTE_PATHS = {
   STATS: '/stats',
   NEW_GAME: '/game/new/:friendId',
   GAME: '/game/:id',
-  LOCAL: '/local',
 } as const;

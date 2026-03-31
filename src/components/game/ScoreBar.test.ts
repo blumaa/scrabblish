@@ -19,6 +19,31 @@ describe('ScoreBar layout requirements', () => {
   });
 });
 
+describe('Last turn banner logic', () => {
+  function getBanner(tilesRemaining: number, gameStatus: string, isCurrentTurn: boolean) {
+    if (tilesRemaining > 0 || gameStatus === 'finished') return null;
+    return isCurrentTurn ? 'Last turn' : 'Done';
+  }
+
+  it('shows "Last turn" for active player when tiles are out', () => {
+    expect(getBanner(0, 'active', true)).toBe('Last turn');
+  });
+
+  it('shows "Done" for inactive player when tiles are out', () => {
+    expect(getBanner(0, 'active', false)).toBe('Done');
+  });
+
+  it('shows nothing when tiles remain', () => {
+    expect(getBanner(5, 'active', true)).toBeNull();
+    expect(getBanner(5, 'active', false)).toBeNull();
+  });
+
+  it('shows nothing when game is finished', () => {
+    expect(getBanner(0, 'finished', true)).toBeNull();
+    expect(getBanner(0, 'finished', false)).toBeNull();
+  });
+});
+
 describe('LastPlay visibility', () => {
   it('server lastPlay is used when local lastPlay is null', () => {
     const local = null;

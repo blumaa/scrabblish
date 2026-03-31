@@ -115,6 +115,29 @@
   margin-top: 1px;
 }
 
+.player-banner {
+  font-size: 9px;
+  font-weight: 600;
+  border-radius: 3px;
+  padding: 1px 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.player-banner-last {
+  background: var(--amber-dim);
+  color: var(--moon);
+}
+
+.player-banner-done {
+  background: var(--sage);
+  color: var(--night);
+}
+
+.player-banner-spacer {
+  height: 13px;
+}
+
 .tiles-remaining-label {
   font-size: 10px;
   color: var(--color-ink-light);

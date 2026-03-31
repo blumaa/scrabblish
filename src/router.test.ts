@@ -9,12 +9,11 @@ describe('route configuration', () => {
     expect(ROUTE_PATHS.STATS).toBe('/stats');
     expect(ROUTE_PATHS.NEW_GAME).toBe('/game/new/:friendId');
     expect(ROUTE_PATHS.GAME).toBe('/game/:id');
-    expect(ROUTE_PATHS.LOCAL).toBe('/local');
   });
 
-  it('has 7 routes total', () => {
+  it('has 6 routes total', () => {
     const paths = Object.values(ROUTE_PATHS);
-    expect(paths.length).toBe(7);
+    expect(paths.length).toBe(6);
   });
 
   it('all paths start with /', () => {

@@ -41,27 +41,19 @@
   color: var(--color-on-primary);
 }
 
-.controls-waiting {
-  text-align: center;
-  color: var(--color-ink-light);
-  font-size: 14px;
-  padding: 12px;
-  width: 100%;
-}
-
-.controls-swap-hint {
+.controls-hint {
   width: 100%;
   text-align: center;
   font-size: 13px;
   color: var(--color-ink-light);
-  padding: 4px 0;
 }
 
-.controls-confirm-text {
+.controls-hint-spacer {
   width: 100%;
-  text-align: center;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--color-ink);
-  padding: 4px 0;
+  height: 13px;
+}
+
+.controls-btn-spacer {
+  height: 44px;
+  width: 100%;
 }

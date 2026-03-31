@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Spinner } from '../atoms/Spinner';
 import './MoveControls.css';
 
@@ -16,6 +16,7 @@ interface MoveControlsProps {
   onEnterSwapMode: () => void;
   onConfirmSwap: () => void;
   onCancelSwap: () => void;
+  showConfirmOverride?: boolean;
 }
 
 export function MoveControls({
@@ -32,32 +33,39 @@ export function MoveControls({
   onEnterSwapMode,
   onConfirmSwap,
   onCancelSwap,
+  showConfirmOverride,
 }: MoveControlsProps) {
-  const [showConfirm, setShowConfirm] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(showConfirmOverride ?? false);
+  const prevSyncing = useRef(syncing);
+
+  useEffect(() => {
+    if (prevSyncing.current && !syncing && showConfirm) {
+      setShowConfirm(false);
+    }
+    prevSyncing.current = syncing;
+  }, [syncing, showConfirm]);
 
   if (!isMyTurn) {
     return (
       <div className="controls">
-        <div className="controls-waiting">Waiting for opponent...</div>
+        <div className="controls-hint">Waiting for opponent...</div>
+        <div className="controls-btn-spacer" />
       </div>
     );
   }
 
-  // Confirmation modal
   if (showConfirm) {
     return (
       <div className="controls controls-confirm">
-        <div className="controls-confirm-text">
-          Swap {swapCount} tile{swapCount !== 1 ? 's' : ''}? You will lose your turn.
+        <div className="controls-hint">
+          Swap {swapCount} tile{swapCount !== 1 ? 's' : ''}?
         </div>
         <button
-          className="ctrl-btn ctrl-btn-primary"
-          onClick={() => {
-            setShowConfirm(false);
-            onConfirmSwap();
-          }}
+          className="ctrl-btn ctrl-btn-danger"
+          onClick={onConfirmSwap}
+          disabled={syncing}
         >
-          Confirm
+          {syncing ? <Spinner size="sm" /> : 'Confirm'}
         </button>
         <button
           className="ctrl-btn ctrl-btn-secondary"
@@ -65,6 +73,7 @@ export function MoveControls({
             setShowConfirm(false);
             onCancelSwap();
           }}
+          disabled={syncing}
         >
           Cancel
         </button>
@@ -72,11 +81,10 @@ export function MoveControls({
     );
   }
 
-  // Swap mode: selecting tiles
   if (swapMode) {
     return (
       <div className="controls">
-        <div className="controls-swap-hint">Tap tiles to select for swap</div>
+        <div className="controls-hint">Tap tiles to select for swap</div>
         <button
           className="ctrl-btn ctrl-btn-primary"
           onClick={() => setShowConfirm(true)}
@@ -94,9 +102,9 @@ export function MoveControls({
     );
   }
 
-  // Normal mode
   return (
     <div className="controls">
+      <div className="controls-hint-spacer" />
       <button
         className="ctrl-btn ctrl-btn-primary"
         onClick={onSubmit}

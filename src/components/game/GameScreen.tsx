@@ -1,142 +1,154 @@
-import { useReducer, useRef } from 'react';
+import { useRef, useState, useMemo } from 'react';
+import { useParams, useNavigate } from 'react-router';
 import { Board } from '../board/Board';
 import { ScoreBar } from './ScoreBar';
 import { MoveControls } from './MoveControls';
 import { LastPlay } from './LastPlay';
 import { GameOverOverlay } from './GameOverOverlay';
 import { BlankTileSelector } from './BlankTileSelector';
-import { TurnBanner } from './TurnBanner';
-import { gameReducer, initialGameState, isMyTurn, isFirstMove } from '../../context/game-reducer';
-import { createMergedBag, drawTiles } from '../../lib/tile-bag';
+import { Skeleton } from '../atoms/Skeleton';
+import { Spinner } from '../atoms/Spinner';
 import { useDictionary } from '../../hooks/useDictionary';
+import { useOnlineGame } from '../../hooks/useOnlineGame';
 import { useGameInteraction } from '../../hooks/useGameInteraction';
-import type { GameState, Tile } from '../../types/game';
+import { useAuth } from '../../hooks/useAuth';
+import { callEdgeFunction } from '../../lib/edge-client';
+import type { Tile, PlacedTile } from '../../types/game';
 import './GameScreen.css';
 
 export function GameScreen() {
-  const [state, dispatch] = useReducer(gameReducer, undefined, initLocalGame);
+  const { id: gameId } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const userId = user?.id ?? '';
+  const onBack = () => navigate('/');
+  const {
+    gameState: serverState,
+    loading,
+    error: onlineError,
+    myHand,
+    submitMove: serverSubmitMove,
+    exchangeTiles: serverExchangeTiles,
+    totalTiles,
+    committedWords,
+  } = useOnlineGame(gameId ?? '', userId, callEdgeFunction);
+
+  const [pendingTiles, setPendingTiles] = useState<PlacedTile[]>([]);
+  const [rackOrder, setRackOrder] = useState<string[]>([]);
+  const [lastPlay, setLastPlay] = useState<{ playerName: string; words: string[]; score: number } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [shuffledRack, setShuffledRack] = useState<Tile[] | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
-  const tileBagRef = useRef<Tile[]>(getInitBag());
 
-  const myTurn = isMyTurn(state);
-  const firstMove = isFirstMove(state);
+  const rack = useMemo(() => {
+    const pendingIds = new Set(pendingTiles.map((t) => t.id));
+    return myHand.filter((t) => !pendingIds.has(t.id));
+  }, [myHand, pendingTiles]);
 
-  // Turn banner
-  const showTurnBanner = myTurn && state.moveNumber > 0;
+  const languages = serverState?.languages ?? ['en', 'de'];
+  const { loaded: dictLoaded, loading: dictLoading, dicts } = useDictionary(languages);
+  const displayRack = (shuffledRack && shuffledRack.length === rack.length) ? shuffledRack : rack;
 
-  const { loaded: dictLoaded, loading: dictLoading, dicts, progress: dictProgress } = useDictionary(state.languages);
-
-  const me = state.myPlayerId === state.player1.id ? state.player1 : state.player2;
+  const myTurn = serverState?.currentTurnPlayerId === userId;
+  const firstMove = serverState?.board.every((row) => row.every((cell) => cell === null)) ?? true;
+  const me = serverState?.myPlayerId === serverState?.player1.id ? serverState?.player1 : serverState?.player2;
 
   const interaction = useGameInteraction({
-    board: state.board,
-    pendingTiles: state.pendingTiles,
-    isFirstMove: firstMove,
+    board: serverState?.board ?? [],
+    pendingTiles,
+    isFirstMove: firstMove ?? true,
     dicts,
-    onPlaceTile: (tile, row, col) => dispatch({ type: 'PLACE_TILE', tile, position: { row, col } }),
-    onRecallTile: (tileId) => dispatch({ type: 'RECALL_TILE', tileId }),
-    onRecallAll: () => dispatch({ type: 'RECALL_ALL_TILES' }),
-    onMovePendingTile: (tileId, row, col) => dispatch({ type: 'MOVE_PENDING_TILE', tileId, position: { row, col } }),
-    onShuffle: () => dispatch({ type: 'SHUFFLE_RACK' }),
-    onSubmitValidated: (score, wordsWithLangs) => {
-      const newBoard = state.board.map((row) => [...row]);
-      for (const t of state.pendingTiles) {
-        newBoard[t.row][t.col] = t;
-      }
-
-      const { drawn, remaining } = drawTiles(tileBagRef.current, state.pendingTiles.length);
-      tileBagRef.current = remaining;
-
-      const newHand = [...me.rack, ...drawn];
-      const isP1 = state.myPlayerId === state.player1.id;
-
-      const gameFinished = tileBagRef.current.length === 0 && newHand.length === 0;
-      const p1Score = state.player1.score + (isP1 ? score : 0);
-      const p2Score = state.player2.score + (isP1 ? 0 : score);
-      const winnerId = gameFinished
-        ? (p1Score > p2Score ? state.player1.id : p2Score > p1Score ? state.player2.id : null)
-        : null;
-
-      dispatch({
-        type: 'SYNC_STATE',
-        board: newBoard,
-        moveNumber: state.moveNumber + 1,
-        currentTurn: gameFinished ? null : (isP1 ? state.player2.id : state.player1.id),
-        player1Score: p1Score,
-        player2Score: p2Score,
-        tilesRemaining: tileBagRef.current.length,
-        winnerId,
-        status: gameFinished ? 'finished' : 'active',
-      });
-      dispatch({ type: 'MOVE_SUBMITTED', updatedHand: newHand, moveNumber: state.moveNumber + 1 });
-
-      const currentPlayerName = isP1 ? state.player1.displayName : state.player2.displayName;
-      dispatch({ type: 'SET_LAST_PLAY', playerName: currentPlayerName, words: wordsWithLangs.map((w) => w.word), score });
-      dispatch({ type: 'SET_MY_PLAYER', playerId: isP1 ? state.player2.id : state.player1.id });
+    onPlaceTile: (tile, row, col) => {
+      if (rackOrder.length === 0) setRackOrder(rack.map((t) => t.id));
+      setPendingTiles((prev) => [...prev, { ...tile, row, col }]);
     },
-    onError: (error) => dispatch({ type: 'MOVE_ERROR', error }),
+    onRecallTile: (tileId) => setPendingTiles((prev) => prev.filter((t) => t.id !== tileId)),
+    onRecallAll: () => { setPendingTiles([]); setRackOrder([]); },
+    onMovePendingTile: (tileId, row, col) => {
+      setPendingTiles((prev) => prev.map((t) => (t.id === tileId ? { ...t, row, col } : t)));
+    },
+    onShuffle: () => { setShuffledRack([...rack].sort(() => Math.random() - 0.5)); setRackOrder([]); },
+    onSubmitValidated: async (score, wordsWithLangs) => {
+      setSyncing(true);
+      const success = await serverSubmitMove(pendingTiles, score, wordsWithLangs);
+      setSyncing(false);
+      if (success && me) {
+        setLastPlay({ playerName: me.displayName, words: wordsWithLangs.map((w) => w.word), score });
+        setPendingTiles([]);
+        setRackOrder([]);
+        setError(null);
+      }
+    },
+    onError: setError,
   });
 
-  const handleConfirmSwap = () => {
-    const isP1 = state.myPlayerId === state.player1.id;
-    const tilesToSwap = me.rack.filter((t) => interaction.swapSelected.has(t.id));
-    const tilesToKeep = me.rack.filter((t) => !interaction.swapSelected.has(t.id));
-
-    const returnedBag = [...tileBagRef.current, ...tilesToSwap];
-    const shuffled = returnedBag.sort(() => Math.random() - 0.5);
-    const { drawn, remaining } = drawTiles(shuffled, tilesToSwap.length);
-    tileBagRef.current = remaining;
-
-    const newHand = [...tilesToKeep, ...drawn];
-
-    dispatch({
-      type: 'SYNC_STATE',
-      board: state.board,
-      moveNumber: state.moveNumber + 1,
-      currentTurn: isP1 ? state.player2.id : state.player1.id,
-      player1Score: state.player1.score,
-      player2Score: state.player2.score,
-      tilesRemaining: tileBagRef.current.length,
-      winnerId: null,
-      status: 'active',
-    });
-    dispatch({ type: 'MOVE_SUBMITTED', updatedHand: newHand, moveNumber: state.moveNumber + 1 });
-    dispatch({ type: 'SET_MY_PLAYER', playerId: isP1 ? state.player2.id : state.player1.id });
-
-    interaction.resetSwap();
+  const handleConfirmSwap = async () => {
+    setSyncing(true);
+    const success = await serverExchangeTiles([...interaction.swapSelected]);
+    setSyncing(false);
+    if (success) {
+      interaction.resetSwap();
+      setError(null);
+    }
   };
 
-  const canSubmit = state.pendingTiles.length > 0 && myTurn && dictLoaded;
+  if (loading) {
+    return (
+      <div className="game-screen">
+        <div className="game-board-area"><Skeleton variant="board" /></div>
+      </div>
+    );
+  }
+
+  if (!serverState) {
+    return (
+      <div className="game-screen" style={{ justifyContent: 'center', alignItems: 'center' }}>
+        <div style={{ textAlign: 'center', color: 'var(--text-error)', padding: 'var(--space-4)' }}>
+          {onlineError || 'Failed to load game'}
+        </div>
+        <button className="score-bar-back" onClick={onBack} style={{ color: 'var(--text-primary)' }}>Back</button>
+      </div>
+    );
+  }
+
+  const canSubmit = pendingTiles.length > 0 && myTurn && dictLoaded;
 
   return (
     <div className="game-screen">
-      <TurnBanner key={state.moveNumber} visible={showTurnBanner} />
       <ScoreBar
-        player1={state.player1}
-        player2={state.player2}
-        currentTurnPlayerId={state.currentTurnPlayerId}
-        myPlayerId={state.myPlayerId}
-        tilesRemaining={state.tilesRemaining}
-        languages={state.languages}
+        player1={serverState.player1}
+        player2={serverState.player2}
+        currentTurnPlayerId={serverState.currentTurnPlayerId}
+        myPlayerId={userId}
+        tilesRemaining={serverState.tilesRemaining}
+        totalTiles={totalTiles}
+        languages={serverState.languages}
+        gameStatus={serverState.status}
+        onBack={onBack}
       />
 
-      {state.lastPlay ? (
+      {(lastPlay || serverState.lastPlay) ? (
         <LastPlay
-          playerName={state.lastPlay.playerName}
-          words={state.lastPlay.words}
-          score={state.lastPlay.score}
+          playerName={(lastPlay ?? serverState.lastPlay)!.playerName}
+          words={(lastPlay ?? serverState.lastPlay)!.words}
+          score={(lastPlay ?? serverState.lastPlay)!.score}
         />
       ) : (
         <div className="last-play" />
       )}
 
+      {dictLoading && (
+        <div className="game-dict-loading"><Spinner size="sm" /></div>
+      )}
+
       <div className="game-board-area">
         <Board
           svgRef={svgRef}
-          board={state.board}
-          pendingTiles={state.pendingTiles}
-          rackTiles={me.rack}
-          rackOrder={state.rackOrder}
+          board={serverState.board}
+          pendingTiles={pendingTiles}
+          rackTiles={displayRack}
+          rackOrder={rackOrder}
           onPlaceTile={interaction.swapMode ? undefined : interaction.handlePlaceTile}
           onRecallTile={interaction.swapMode ? undefined : interaction.handleRecallTile}
           onMovePendingTile={interaction.swapMode ? undefined : interaction.handleMovePendingTile}
@@ -144,28 +156,25 @@ export function GameScreen() {
           swapSelected={interaction.swapSelected}
           onToggleSwapTile={interaction.handleToggleSwapTile}
           validatedWords={interaction.validatedWords}
-          gameLanguages={state.languages}
+          committedWords={committedWords}
+          gameLanguages={serverState.languages}
         />
       </div>
 
-      {dictLoading && (
-        <div className="game-dict-loading">{dictProgress || 'Loading dictionaries...'}</div>
-      )}
-
-      {state.error && (
-        <div className="game-error" onClick={() => dispatch({ type: 'CLEAR_ERROR' })}>
-          {state.error}
+      {(error || onlineError) && (
+        <div className="game-error" onClick={() => setError(null)}>
+          {error || onlineError}
         </div>
       )}
 
       <MoveControls
         canSubmit={canSubmit}
-        hasPendingTiles={state.pendingTiles.length > 0}
+        hasPendingTiles={pendingTiles.length > 0}
         isMyTurn={myTurn}
-        syncing={state.syncing}
+        syncing={syncing}
         swapMode={interaction.swapMode}
         swapCount={interaction.swapSelected.size}
-        tilesRemaining={state.tilesRemaining}
+        tilesRemaining={serverState.tilesRemaining}
         onSubmit={interaction.handleSubmit}
         onRecallAll={interaction.handleRecallAll}
         onShuffle={interaction.handleShuffle}
@@ -176,49 +185,20 @@ export function GameScreen() {
 
       {interaction.blankPending && (
         <BlankTileSelector
-          languages={state.languages}
+          languages={languages}
           onSelect={interaction.handleBlankLetterSelected}
           onCancel={interaction.handleBlankCancelled}
         />
       )}
 
-      {state.status === 'finished' && (
+      {serverState.status === 'finished' && (
         <GameOverOverlay
-          player1={state.player1}
-          player2={state.player2}
-          myPlayerId={state.myPlayerId}
-          onRematch={() => window.location.reload()}
+          player1={serverState.player1}
+          player2={serverState.player2}
+          myPlayerId={userId}
+          onRematch={onBack}
         />
       )}
     </div>
   );
-}
-
-function initLocalGame(): GameState {
-  const bag = createMergedBag(['en', 'de']);
-  const { drawn: hand1, remaining: afterHand1 } = drawTiles(bag, 7);
-  const { drawn: hand2, remaining: afterHand2 } = drawTiles(afterHand1, 7);
-
-  _initBag = afterHand2;
-
-  return {
-    ...initialGameState,
-    gameId: 'local',
-    joinCode: null,
-    languages: ['en', 'de'],
-    status: 'active',
-    myPlayerId: 'p1',
-    player1: { id: 'p1', displayName: 'Player 1', rack: hand1, score: 0 },
-    player2: { id: 'p2', displayName: 'Player 2', rack: hand2, score: 0 },
-    currentTurnPlayerId: 'p1',
-    tilesRemaining: afterHand2.length,
-  };
-}
-
-let _initBag: Tile[] = [];
-
-function getInitBag(): Tile[] {
-  const bag = _initBag;
-  _initBag = [];
-  return bag;
 }

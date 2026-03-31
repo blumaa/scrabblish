@@ -5,7 +5,6 @@ import { HomeScreen } from './components/screens/HomeScreen';
 import { ProfileScreen } from './components/screens/ProfileScreen';
 import { StatsScreen } from './components/screens/StatsScreen';
 import { NewGameScreen } from './components/screens/NewGameScreen';
-import { OnlineGameScreen } from './components/game/OnlineGameScreen';
 import { GameScreen } from './components/game/GameScreen';
 
 export const router = createBrowserRouter([
@@ -14,17 +13,13 @@ export const router = createBrowserRouter([
     Component: LoginRoute,
   },
   {
-    path: '/local',
-    Component: GameScreen,
-  },
-  {
     Component: AuthLayout,
     children: [
       { index: true, Component: HomeScreen },
       { path: 'profile', Component: ProfileScreen },
       { path: 'stats', Component: StatsScreen },
       { path: 'game/new/:friendId', Component: NewGameScreen },
-      { path: 'game/:id', Component: OnlineGameScreen },
+      { path: 'game/:id', Component: GameScreen },
     ],
   },
 ]);

@@ -92,8 +92,8 @@
 
 /* Swap mode selected tile */
 .tile-swap-selected .tile-bg {
-  fill: var(--coral);
-  stroke: var(--color-error);
+  fill: var(--amber-dim);
+  stroke: var(--amber);
   stroke-width: 2.5;
 }
 
