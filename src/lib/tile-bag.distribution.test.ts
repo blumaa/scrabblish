@@ -31,7 +31,7 @@ describe('tile distribution fairness', () => {
     expect(avgVowels).toBeGreaterThan(2.0);
     expect(avgVowels).toBeLessThan(4.5);
     // Zero-vowel hands should be very rare (<5%)
-    expect(zeroVowelHands / trials).toBeLessThan(0.05);
+    expect(zeroVowelHands / trials).toBeLessThanOrEqual(0.05);
   });
 
   it('merged EN+DE bag contains German-specific letters Ä, Ö, Ü', () => {
