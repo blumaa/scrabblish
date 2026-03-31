@@ -3,6 +3,7 @@ import { corsHeaders } from '../_shared/cors.ts';
 import { getServiceClient, getUserId } from '../_shared/supabase.ts';
 import { drawTiles, type Tile } from '../_shared/tile-bag.ts';
 import { sendWebPush } from '../_shared/web-push.ts';
+import { sendApnsPush } from '../_shared/apns.ts';
 import { computeStats } from '../_shared/compute-stats.ts';
 
 interface PlacedTile extends Tile {
@@ -250,17 +251,37 @@ serve(async (req) => {
             const vapidSub = Deno.env.get('VAPID_SUBJECT') ?? '';
 
             for (const t of tokens) {
+              const pushPayload = { title: 'Scrabblish', body: "It's your turn!", url: '/' };
+
               if (t.platform === 'web' && vapidPub && vapidPriv) {
                 const success = await sendWebPush(
                   t.token,
-                  { title: 'Scrabblish', body: "It's your turn!", url: '/' },
+                  pushPayload,
                   vapidPub,
                   vapidPriv,
                   vapidSub
                 );
                 if (!success) {
-                  // Token expired — clean it up
                   await supabase.from('push_tokens').delete().eq('token', t.token);
+                }
+              } else if (t.platform === 'ios') {
+                const apnsKeyId = Deno.env.get('APNS_KEY_ID') ?? '';
+                const apnsTeamId = Deno.env.get('APNS_TEAM_ID') ?? '';
+                const apnsPrivateKey = Deno.env.get('APNS_PRIVATE_KEY') ?? '';
+                const apnsBundleId = Deno.env.get('APNS_BUNDLE_ID') ?? 'app.vercel.scrabblish';
+
+                if (apnsKeyId && apnsTeamId && apnsPrivateKey) {
+                  const success = await sendApnsPush(
+                    t.token,
+                    pushPayload,
+                    apnsTeamId,
+                    apnsKeyId,
+                    apnsPrivateKey,
+                    apnsBundleId,
+                  );
+                  if (!success) {
+                    await supabase.from('push_tokens').delete().eq('token', t.token);
+                  }
                 }
               }
             }

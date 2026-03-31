@@ -8,7 +8,9 @@ import './index.css'
 import { router } from './router.tsx'
 import { ErrorBoundary } from './components/ErrorBoundary.tsx'
 
-if ('serviceWorker' in navigator) {
+import { getAppContext } from './lib/app-context.ts'
+
+if (getAppContext() !== 'capacitor' && 'serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js');
 }
 

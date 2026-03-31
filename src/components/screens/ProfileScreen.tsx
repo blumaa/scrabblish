@@ -11,6 +11,8 @@ import { useAuth } from '../../hooks/useAuth';
 import { useProfile } from '../../hooks/useProfile';
 import { useFriends } from '../../hooks/useFriends';
 import { useNotifications } from '../../hooks/useNotifications';
+import { useCapacitorPush } from '../../hooks/useCapacitorPush';
+import { getAppContext } from '../../lib/app-context';
 import type { Friend } from '../../hooks/useFriends';
 import './ProfileScreen.css';
 
@@ -19,7 +21,10 @@ export function ProfileScreen() {
   const { user, signOut } = useAuth();
   const { profile, updateProfile } = useProfile(user?.id ?? null);
   const { friends, error, searchUsers, addFriend, removeFriend } = useFriends(user?.id ?? null);
-  const { supported: notificationsSupported, enabled: notificationsEnabled, registerPush, unregisterPush } = useNotifications(user?.id ?? null);
+  const webPush = useNotifications(user?.id ?? null);
+  const capPush = useCapacitorPush(user?.id ?? null);
+  const push = getAppContext() === 'capacitor' ? capPush : webPush;
+  const { supported: notificationsSupported, enabled: notificationsEnabled, registerPush, unregisterPush } = push;
 
   const username = profile?.username ?? '';
   const avatarIcon = profile?.avatarUrl ?? null;
