@@ -199,12 +199,20 @@ export function useOnlineGame(
           });
 
           moveNumberRef.current = newGame.move_number as number;
+
+          // Refresh hand when it becomes our turn (opponent may have changed the bag)
+          if (newGame.current_turn === userId) {
+            callEdgeFunction('get-hand', { gameId }).then((result) => {
+              const { hand } = result as { hand: Tile[]; tilesRemaining: number };
+              setMyHand(hand);
+            }).catch(() => {});
+          }
         }
       )
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [gameId]);
+  }, [gameId, userId, callEdgeFunction]);
 
   const submitMove = useCallback(async (
     tiles: PlacedTile[],
@@ -224,7 +232,11 @@ export function useOnlineGame(
 
       setMyHand(result.hand);
       moveNumberRef.current = result.moveNumber;
-      await loadGame(); // refresh full state
+      try {
+        await loadGame();
+      } catch {
+        console.warn('Post-move refresh failed');
+      }
       return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to submit move');
@@ -244,7 +256,11 @@ export function useOnlineGame(
 
       setMyHand(result.hand);
       moveNumberRef.current = result.moveNumber;
-      await loadGame();
+      try {
+        await loadGame();
+      } catch {
+        console.warn('Post-exchange refresh failed');
+      }
       return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to exchange tiles');

@@ -185,8 +185,8 @@ serve(async (req) => {
       ? (newP1Score > newP2Score ? game.player1_id : newP2Score > newP1Score ? opponentId : null)
       : null;
 
-    // Update game
-    const { error: updateErr } = await supabase
+    // Update game (optimistic concurrency: only update if move_number hasn't changed)
+    const { data: updated, error: updateErr } = await supabase
       .from('games')
       .update({
         board_state: newBoard,
@@ -200,12 +200,19 @@ serve(async (req) => {
         last_move_at: new Date().toISOString(),
       })
       .eq('id', gameId)
-      .eq('move_number', game.move_number); // optimistic concurrency
+      .eq('move_number', game.move_number)
+      .select('id')
+      .single();
 
-    if (updateErr) throw updateErr;
+    if (updateErr || !updated) {
+      return new Response(JSON.stringify({ error: 'Stale move — please refresh' }), {
+        status: 409,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     // Insert move record
-    await supabase.from('moves').insert({
+    const { error: moveErr } = await supabase.from('moves').insert({
       game_id: gameId,
       player_id: userId,
       move_number: newMoveNumber,
@@ -215,6 +222,7 @@ serve(async (req) => {
       score,
       tiles_exchanged_count: action === 'exchange' ? (body.tileIds?.length ?? 0) : null,
     });
+    if (moveErr) throw moveErr;
 
     // Update secrets
     const secretUpdate: Record<string, unknown> = { tile_bag: newBag };
@@ -224,10 +232,11 @@ serve(async (req) => {
       secretUpdate.player2_hand = newHand;
     }
 
-    await supabase
+    const { error: secretUpdateErr } = await supabase
       .from('game_secrets')
       .update(secretUpdate)
       .eq('game_id', gameId);
+    if (secretUpdateErr) throw secretUpdateErr;
 
     // Send push notification to opponent (best-effort, don't block response)
     try {
@@ -250,10 +259,14 @@ serve(async (req) => {
             const vapidPriv = Deno.env.get('VAPID_PRIVATE_KEY') ?? '';
             const vapidSub = Deno.env.get('VAPID_SUBJECT') ?? '';
 
+            if (!vapidSub) {
+              console.warn('VAPID_SUBJECT not set — skipping web push notifications');
+            }
+
             for (const t of tokens) {
               const pushPayload = { title: 'Scrabblish', body: "It's your turn!", url: '/' };
 
-              if (t.platform === 'web' && vapidPub && vapidPriv) {
+              if (t.platform === 'web' && vapidPub && vapidPriv && vapidSub) {
                 const success = await sendWebPush(
                   t.token,
                   pushPayload,

@@ -21,6 +21,7 @@ const TOTAL_HEIGHT = BOARD_PX + RACK_TILE_SIZE + 50;
 
 interface BoardProps {
   svgRef: RefObject<SVGSVGElement | null>;
+  pendingShakeRef?: RefObject<SVGGElement | null>;
   board: BoardType;
   pendingTiles: PlacedTile[];
   rackTiles: Tile[];
@@ -43,6 +44,7 @@ const SQUARES = Array.from({ length: BOARD_SIZE }, (_, row) =>
 
 export function Board({
   svgRef,
+  pendingShakeRef,
   board,
   pendingTiles,
   rackTiles,
@@ -329,7 +331,7 @@ export function Board({
         </g>
 
         {/* Pending tiles — rendered AFTER rack so they appear on top when dragged */}
-        <g>
+        <g ref={pendingShakeRef}>
           <g ref={pendingGroupRef}>
             {pendingTiles.map((tile) => (
               <DraggableTile

@@ -1,5 +1,6 @@
-import { useRef, useState, useMemo } from 'react';
+import { useRef, useState, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router';
+import gsap from 'gsap';
 import { Board } from '../board/Board';
 import { ScoreBar } from './ScoreBar';
 import { MoveControls } from './MoveControls';
@@ -40,6 +41,18 @@ export function GameScreen() {
   const [syncing, setSyncing] = useState(false);
   const [shuffledRack, setShuffledRack] = useState<Tile[] | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+  const pendingShakeRef = useRef<SVGGElement>(null);
+
+  const shakePendingTiles = useCallback(() => {
+    if (!pendingShakeRef.current) return;
+    gsap.to(pendingShakeRef.current, {
+      attr: { transform: 'translate(4, 0)' },
+      duration: 0.06,
+      repeat: 5,
+      yoyo: true,
+      onComplete: () => { gsap.set(pendingShakeRef.current, { attr: { transform: '' } }); },
+    });
+  }, []);
 
   const rack = useMemo(() => {
     const pendingIds = new Set(pendingTiles.map((t) => t.id));
@@ -78,6 +91,8 @@ export function GameScreen() {
         setPendingTiles([]);
         setRackOrder([]);
         setError(null);
+      } else {
+        shakePendingTiles();
       }
     },
     onError: setError,
@@ -145,6 +160,7 @@ export function GameScreen() {
       <div className="game-board-area">
         <Board
           svgRef={svgRef}
+          pendingShakeRef={pendingShakeRef}
           board={serverState.board}
           pendingTiles={pendingTiles}
           rackTiles={displayRack}
