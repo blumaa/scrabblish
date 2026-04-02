@@ -142,3 +142,13 @@
   font-size: 10px;
   color: var(--color-ink-light);
 }
+
+@media (min-width: 640px) {
+  .tiles-remaining-label {
+    margin-top: 2px;
+  }
+
+  .score-bar-languages {
+    margin-top: 2px;
+  }
+}

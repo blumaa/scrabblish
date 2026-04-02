@@ -128,10 +128,10 @@ export function HomeScreen() {
         <Card padding="sm" className="home-section">
           <h3 className="home-section-title">Pending ({waitingGames.length})</h3>
           {waitingGames.map((game) => (
-            <div key={game.id} className="home-game-row">
+            <button key={game.id} className="home-game-row" onClick={() => navigate(`/game/${game.id}`)}>
               <span className="home-game-opponent">Waiting for opponent</span>
               <span className="home-game-waiting">Pending</span>
-            </div>
+            </button>
           ))}
         </Card>
       )}

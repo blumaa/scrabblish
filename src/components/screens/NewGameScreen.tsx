@@ -40,7 +40,7 @@ export function NewGameScreen() {
     setCreating(true);
     const result = await createGame([...languages], friendId);
     setCreating(false);
-    if (result) navigate('/');
+    if (result) navigate(`/game/${result.id}`);
   };
 
   return (

@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router';
 import { Avatar } from '../atoms/Avatar';
 import { Button } from '../atoms/Button';
 import { Card } from '../atoms/Card';
+import { ConfirmDialog } from '../atoms/ConfirmDialog';
 import { Input } from '../atoms/Input';
 import { BackButton } from '../atoms/BackButton';
 import { FriendRow } from '../molecules/FriendRow';
@@ -18,7 +19,7 @@ import './ProfileScreen.css';
 
 export function ProfileScreen() {
   const navigate = useNavigate();
-  const { user, signOut } = useAuth();
+  const { user, signOut, deleteAccount } = useAuth();
   const { profile, updateProfile } = useProfile(user?.id ?? null);
   const { friends, error, searchUsers, addFriend, removeFriend } = useFriends(user?.id ?? null);
   const webPush = useNotifications(user?.id ?? null);
@@ -36,6 +37,9 @@ export function ProfileScreen() {
   const [searchResults, setSearchResults] = useState<Friend[]>([]);
   const [searching, setSearching] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const handleSaveProfile = async () => {
     if (editUsername.length < 3) {
@@ -194,6 +198,32 @@ export function ProfileScreen() {
           Sign Out
         </Button>
       </Card>
+
+      <Card padding="sm" className="profile-section profile-section--center">
+        <Button variant="ghost" onClick={() => setShowDeleteConfirm(true)} className="profile-delete-btn">
+          Delete Account
+        </Button>
+      </Card>
+
+      {showDeleteConfirm && (
+        <ConfirmDialog
+          title="Delete Account?"
+          body="This will permanently delete your account, profile, and all associated data. This cannot be undone."
+          confirmLabel="Yes, Delete My Account"
+          error={deleteError}
+          loading={deleting}
+          onConfirm={async () => {
+            setDeleting(true);
+            setDeleteError(null);
+            const ok = await deleteAccount();
+            if (!ok) {
+              setDeleteError('Failed to delete account. Please try again.');
+              setDeleting(false);
+            }
+          }}
+          onCancel={() => setShowDeleteConfirm(false)}
+        />
+      )}
     </div>
   );
 }

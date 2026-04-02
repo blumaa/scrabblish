@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { User, AuthError } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { callEdgeFunction } from '../lib/edge-client';
 
 interface AuthState {
   user: User | null;
@@ -61,6 +62,19 @@ export function useAuth() {
     setState({ user: null, loading: false, error: null });
   }, []);
 
+  const deleteAccount = useCallback(async () => {
+    setState((prev) => ({ ...prev, loading: true, error: null }));
+    try {
+      await callEdgeFunction('delete-account', {});
+      await supabase.auth.signOut();
+      setState({ user: null, loading: false, error: null });
+      return true;
+    } catch {
+      setState((prev) => ({ ...prev, loading: false, error: 'Failed to delete account. Please try again.' }));
+      return false;
+    }
+  }, []);
+
   const resetPassword = useCallback(async (email: string) => {
     setState((prev) => ({ ...prev, loading: true, error: null }));
     const { error } = await supabase.auth.resetPasswordForEmail(email);
@@ -83,6 +97,7 @@ export function useAuth() {
     signUp,
     signIn,
     signOut,
+    deleteAccount,
     resetPassword,
     clearError,
   };

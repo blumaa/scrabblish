@@ -150,3 +150,9 @@
   width: 100%;
   color: var(--color-error);
 }
+
+.profile-delete-btn {
+  width: 100%;
+  color: var(--color-error);
+  opacity: 0.7;
+}

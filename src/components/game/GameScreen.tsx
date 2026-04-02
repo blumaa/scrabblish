@@ -172,6 +172,7 @@ export function GameScreen() {
         hasPendingTiles={pendingTiles.length > 0}
         isMyTurn={myTurn}
         syncing={syncing}
+        gameStatus={serverState.status}
         swapMode={interaction.swapMode}
         swapCount={interaction.swapSelected.size}
         tilesRemaining={serverState.tilesRemaining}

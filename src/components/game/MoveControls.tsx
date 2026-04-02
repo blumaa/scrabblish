@@ -17,6 +17,7 @@ interface MoveControlsProps {
   onConfirmSwap: () => void;
   onCancelSwap: () => void;
   showConfirmOverride?: boolean;
+  gameStatus?: 'waiting' | 'active' | 'finished';
 }
 
 export function MoveControls({
@@ -34,14 +35,18 @@ export function MoveControls({
   onConfirmSwap,
   onCancelSwap,
   showConfirmOverride,
+  gameStatus,
 }: MoveControlsProps) {
   const [showConfirmState, setShowConfirm] = useState(showConfirmOverride ?? false);
   const showConfirm = showConfirmState && swapMode;
 
   if (!isMyTurn) {
+    const waitingMessage = gameStatus === 'waiting'
+      ? 'Waiting for opponent to accept...'
+      : 'Waiting for opponent...';
     return (
       <div className="controls">
-        <div className="controls-hint">Waiting for opponent...</div>
+        <div className="controls-hint">{waitingMessage}</div>
         <div className="controls-btn-spacer" />
       </div>
     );
