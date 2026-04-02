@@ -152,24 +152,32 @@ async function encryptPayload(
   // Generate salt
   const salt = crypto.getRandomValues(new Uint8Array(16));
 
-  // Derive encryption key using HKDF
-  // PRK = HMAC-SHA-256(auth_secret, shared_secret)
+  // RFC 8291 key derivation:
+  // Step 1: PRK = HMAC-SHA-256(auth_secret, ecdh_secret)
   const prkKey = await crypto.subtle.importKey('raw', subscriberAuth, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   const prk = new Uint8Array(await crypto.subtle.sign('HMAC', prkKey, sharedSecret));
 
-  // IKM for content encryption key
-  const keyInfoBuf = buildInfo('aesgcm', subscriberPubKey, ephemeralPubKeyBytes);
-  const contentKey = await hkdfExpand(prk, concat(new TextEncoder().encode('Content-Encoding: aes128gcm\0'), keyInfoBuf), 16);
+  // Step 2: IKM = HKDF-Expand(PRK, "WebPush: info\0" || ua_public || as_public, 32)
+  const ikmInfo = concat(
+    new TextEncoder().encode('WebPush: info\0'),
+    subscriberPubKey,
+    ephemeralPubKeyBytes,
+  );
+  const ikm = await hkdfExpand(prk, ikmInfo, 32);
 
-  // IKM for nonce
-  const nonceInfoBuf = buildInfo('nonce', subscriberPubKey, ephemeralPubKeyBytes);
-  const nonce = await hkdfExpand(prk, concat(new TextEncoder().encode('Content-Encoding: nonce\0'), nonceInfoBuf), 12);
+  // Step 3: salt_PRK = HMAC-SHA-256(salt, IKM)
+  const saltKey = await crypto.subtle.importKey('raw', salt, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const saltPrk = new Uint8Array(await crypto.subtle.sign('HMAC', saltKey, ikm));
+
+  // Step 4: CEK and nonce from salt_PRK
+  const contentKey = await hkdfExpand(saltPrk, new TextEncoder().encode('Content-Encoding: aes128gcm\0'), 16);
+  const nonce = await hkdfExpand(saltPrk, new TextEncoder().encode('Content-Encoding: nonce\0'), 12);
 
   // Encrypt with AES-128-GCM
   const aesKey = await crypto.subtle.importKey('raw', contentKey, { name: 'AES-GCM' }, false, ['encrypt']);
 
-  // Pad payload (add 0x02 delimiter + padding)
-  const paddedPayload = concat(payload, new Uint8Array([2])); // record delimiter
+  // Pad payload (add 0x02 delimiter per RFC 8188)
+  const paddedPayload = concat(payload, new Uint8Array([2]));
 
   const ciphertext = await crypto.subtle.encrypt(
     { name: 'AES-GCM', iv: nonce },
@@ -215,11 +223,6 @@ function concat(...arrays: Uint8Array[]): Uint8Array {
     offset += a.length;
   }
   return result;
-}
-
-function buildInfo(type: string, subscriberPubKey: Uint8Array, senderPubKey: Uint8Array): Uint8Array {
-  // For aes128gcm, info is just empty (the key derivation uses the standard construction)
-  return new Uint8Array(0);
 }
 
 async function hkdfExpand(prk: Uint8Array, info: Uint8Array, length: number): Promise<Uint8Array> {
