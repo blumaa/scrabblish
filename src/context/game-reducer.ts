@@ -156,7 +156,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     case 'SET_LAST_PLAY':
       return {
         ...state,
-        lastPlay: { playerName: action.playerName, words: action.words, score: action.score },
+        lastPlay: { playerName: action.playerName, words: action.words, score: action.score, tiles: action.tiles },
       };
 
     case 'MOVE_SUBMITTED': {

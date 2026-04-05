@@ -5,12 +5,14 @@ import type { PlacedTile as PlacedTileType } from '../../types/game';
 interface PlacedTileProps {
   tile: PlacedTileType;
   isPending?: boolean;
+  hidden?: boolean;
   onRecall?: (tileId: string) => void;
 }
 
 export const PlacedTileComponent = memo(function PlacedTileComponent({
   tile,
   isPending = false,
+  hidden = false,
   onRecall,
 }: PlacedTileProps) {
   const x = tile.col * CELL_SIZE;
@@ -31,6 +33,8 @@ export const PlacedTileComponent = memo(function PlacedTileComponent({
     <g
       className={className}
       transform={`translate(${x}, ${y})`}
+      visibility={hidden ? 'hidden' : undefined}
+      data-pos={`${tile.row}-${tile.col}`}
       onClick={handleClick}
       style={{ cursor: isPending ? 'pointer' : 'default' }}
     >

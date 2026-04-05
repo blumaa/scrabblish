@@ -18,6 +18,13 @@ interface GameInteractionConfig {
   onShuffle: () => void;
   onSubmitValidated: (score: number, words: { word: string; languages: string[] }[]) => void;
   onError: (message: string) => void;
+  // Swap mode (owned by useRack, passed through)
+  swapMode: boolean;
+  swapSelected: Set<string>;
+  enterSwapMode: () => void;
+  cancelSwapMode: () => void;
+  toggleSwapTile: (tileId: string) => void;
+  resetSwap: () => void;
 }
 
 export function useGameInteraction(config: GameInteractionConfig) {
@@ -25,10 +32,9 @@ export function useGameInteraction(config: GameInteractionConfig) {
     board, pendingTiles, isFirstMove, dicts,
     onPlaceTile, onRecallTile, onRecallAll, onMovePendingTile,
     onShuffle, onSubmitValidated, onError,
+    swapMode, swapSelected, enterSwapMode, cancelSwapMode, toggleSwapTile, resetSwap,
   } = config;
 
-  const [swapMode, setSwapMode] = useState(false);
-  const [swapSelected, setSwapSelected] = useState<Set<string>>(new Set());
   const [blankPending, setBlankPending] = useState<{ tile: Tile; row: number; col: number } | null>(null);
 
   // Real-time word validation
@@ -93,27 +99,15 @@ export function useGameInteraction(config: GameInteractionConfig) {
 
   const handleEnterSwapMode = () => {
     if (pendingTiles.length > 0) onRecallAll();
-    setSwapMode(true);
-    setSwapSelected(new Set());
+    enterSwapMode();
   };
 
   const handleCancelSwap = () => {
-    setSwapMode(false);
-    setSwapSelected(new Set());
+    cancelSwapMode();
   };
 
   const handleToggleSwapTile = (tileId: string) => {
-    setSwapSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(tileId)) next.delete(tileId);
-      else next.add(tileId);
-      return next;
-    });
-  };
-
-  const resetSwap = () => {
-    setSwapMode(false);
-    setSwapSelected(new Set());
+    toggleSwapTile(tileId);
   };
 
   return {

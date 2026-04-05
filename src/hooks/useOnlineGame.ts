@@ -107,7 +107,7 @@ export function useOnlineGame(
         // Last move for LastPlay display (any move type, not just 'place')
         const { data: lastMoveRow } = await supabase
           .from('moves')
-          .select('player_id, move_type, words_formed, tiles_exchanged_count, score')
+          .select('player_id, move_type, words_formed, tiles_placed, tiles_exchanged_count, score')
           .eq('game_id', gameId)
           .order('move_number', { ascending: false })
           .limit(1)
@@ -115,11 +115,12 @@ export function useOnlineGame(
 
         if (lastMoveRow) {
           const playerName = getUsername(lastMoveRow.player_id);
+          const tilesPlaced = (lastMoveRow.tiles_placed as { row: number; col: number }[] | null) ?? [];
           if (lastMoveRow.move_type === 'exchange') {
-            lastPlay = { playerName, words: ['swapped tiles'], score: 0 };
+            lastPlay = { playerName, words: ['swapped tiles'], score: 0, tiles: [] };
           } else if (lastMoveRow.words_formed) {
             const words = (lastMoveRow.words_formed as { word: string }[]).map((w) => w.word);
-            lastPlay = { playerName, words, score: lastMoveRow.score };
+            lastPlay = { playerName, words, score: lastMoveRow.score, tiles: tilesPlaced };
           }
         }
       }

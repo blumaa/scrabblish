@@ -12,9 +12,11 @@ import { Spinner } from '../atoms/Spinner';
 import { useDictionary } from '../../hooks/useDictionary';
 import { useOnlineGame } from '../../hooks/useOnlineGame';
 import { useGameInteraction } from '../../hooks/useGameInteraction';
+import { useRack } from '../../hooks/useRack';
+import { useLastPlayAnimation } from '../../hooks/useLastPlayAnimation';
 import { useAuth } from '../../hooks/useAuth';
 import { callEdgeFunction } from '../../lib/edge-client';
-import type { Tile, PlacedTile } from '../../types/game';
+import type { PlacedTile } from '../../types/game';
 import './GameScreen.css';
 
 export function GameScreen() {
@@ -35,13 +37,13 @@ export function GameScreen() {
   } = useOnlineGame(gameId ?? '', userId, callEdgeFunction);
 
   const [pendingTiles, setPendingTiles] = useState<PlacedTile[]>([]);
-  const [rackOrder, setRackOrder] = useState<string[]>([]);
-  const [lastPlay, setLastPlay] = useState<{ playerName: string; words: string[]; score: number } | null>(null);
+  const [lastPlay, setLastPlay] = useState<{ playerName: string; words: string[]; score: number; tiles: { row: number; col: number }[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
-  const [shuffledRack, setShuffledRack] = useState<Tile[] | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const pendingShakeRef = useRef<SVGGElement>(null);
+
+  const { animatingTileKeys } = useLastPlayAnimation({ svgRef, loading, serverState });
 
   const shakePendingTiles = useCallback(() => {
     if (!pendingShakeRef.current) return;
@@ -54,14 +56,15 @@ export function GameScreen() {
     });
   }, []);
 
-  const rack = useMemo(() => {
-    const pendingIds = new Set(pendingTiles.map((t) => t.id));
-    return myHand.filter((t) => !pendingIds.has(t.id));
-  }, [myHand, pendingTiles]);
+  const pendingTileIds = useMemo(
+    () => new Set(pendingTiles.map((t) => t.id)),
+    [pendingTiles]
+  );
+
+  const rack = useRack({ tiles: myHand, pendingTileIds });
 
   const languages = serverState?.languages ?? ['en', 'de'];
   const { loaded: dictLoaded, loading: dictLoading, dicts } = useDictionary(languages);
-  const displayRack = (shuffledRack && shuffledRack.length === rack.length) ? shuffledRack : rack;
 
   const myTurn = serverState?.currentTurnPlayerId === userId;
   const firstMove = serverState?.board.every((row) => row.every((cell) => cell === null)) ?? true;
@@ -73,29 +76,35 @@ export function GameScreen() {
     isFirstMove: firstMove ?? true,
     dicts,
     onPlaceTile: (tile, row, col) => {
-      if (rackOrder.length === 0) setRackOrder(rack.map((t) => t.id));
+      rack.snapshotOrder();
       setPendingTiles((prev) => [...prev, { ...tile, row, col }]);
     },
     onRecallTile: (tileId) => setPendingTiles((prev) => prev.filter((t) => t.id !== tileId)),
-    onRecallAll: () => { setPendingTiles([]); setRackOrder([]); },
+    onRecallAll: () => setPendingTiles([]),
     onMovePendingTile: (tileId, row, col) => {
       setPendingTiles((prev) => prev.map((t) => (t.id === tileId ? { ...t, row, col } : t)));
     },
-    onShuffle: () => { setShuffledRack([...rack].sort(() => Math.random() - 0.5)); setRackOrder([]); },
+    onShuffle: () => rack.shuffle(),
     onSubmitValidated: async (score, wordsWithLangs) => {
       setSyncing(true);
+      const tilesToAnimate = pendingTiles.map((t) => ({ row: t.row, col: t.col }));
       const success = await serverSubmitMove(pendingTiles, score, wordsWithLangs);
       setSyncing(false);
       if (success && me) {
-        setLastPlay({ playerName: me.displayName, words: wordsWithLangs.map((w) => w.word), score });
+        setLastPlay({ playerName: me.displayName, words: wordsWithLangs.map((w) => w.word), score, tiles: tilesToAnimate });
         setPendingTiles([]);
-        setRackOrder([]);
         setError(null);
       } else {
         shakePendingTiles();
       }
     },
     onError: setError,
+    swapMode: rack.swapMode,
+    swapSelected: rack.swapSelected,
+    enterSwapMode: rack.enterSwapMode,
+    cancelSwapMode: rack.cancelSwapMode,
+    toggleSwapTile: rack.toggleSwapTile,
+    resetSwap: rack.resetSwap,
   });
 
   const handleConfirmSwap = async () => {
@@ -163,17 +172,19 @@ export function GameScreen() {
           pendingShakeRef={pendingShakeRef}
           board={serverState.board}
           pendingTiles={pendingTiles}
-          rackTiles={displayRack}
-          rackOrder={rackOrder}
+          rackTiles={rack.displayTiles}
+          rackOrder={rack.slotContents.map((t) => t?.id ?? '')}
           onPlaceTile={interaction.swapMode ? undefined : interaction.handlePlaceTile}
           onRecallTile={interaction.swapMode ? undefined : interaction.handleRecallTile}
           onMovePendingTile={interaction.swapMode ? undefined : interaction.handleMovePendingTile}
           swapMode={interaction.swapMode}
           swapSelected={interaction.swapSelected}
           onToggleSwapTile={interaction.handleToggleSwapTile}
+          onReorderTile={rack.reorderTile}
           validatedWords={interaction.validatedWords}
           committedWords={committedWords}
           gameLanguages={serverState.languages}
+          animatingTileKeys={animatingTileKeys}
         />
       </div>
 

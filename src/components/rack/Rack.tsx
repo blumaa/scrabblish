@@ -1,79 +1,149 @@
-import { CELL_SIZE } from '../../lib/svg-coords';
+import type { RefObject } from 'react';
+import { RackDraggableTile } from './RackDraggableTile';
+import { RACK_TILE_SIZE, RACK_GAP, RACK_SLOTS, RACK_TOTAL_W, RACK_OFFSET_X, RACK_Y } from './rack-constants';
 import type { Tile } from '../../types/game';
 import './Rack.css';
 
-interface RackProps {
-  tiles: Tile[];
-  selectedTileId: string | null;
-  onSelectTile: (tileId: string | null) => void;
+export interface RackProps {
+  svgRef: RefObject<SVGSVGElement | null>;
+  rackTiles: Tile[];
+  rackOrder: string[];
+  swapMode: boolean;
+  swapSelected: Set<string>;
+  onToggleSwapTile: (tileId: string) => void;
+  onDropOnBoard: (tileId: string, row: number, col: number) => boolean;
+  onReorderTile: (tileId: string, toSlotIndex: number) => void;
+  zoomScale: number;
+  zoomPanX: number;
+  zoomPanY: number;
+  onLockViewport: () => void;
+  onUnlockViewport: () => void;
 }
 
-const RACK_SLOTS = 7;
-const RACK_WIDTH = RACK_SLOTS * CELL_SIZE;
-const RACK_HEIGHT = CELL_SIZE;
-
-export function Rack({ tiles, selectedTileId, onSelectTile }: RackProps) {
+export function Rack({
+  svgRef,
+  rackTiles,
+  rackOrder,
+  swapMode,
+  swapSelected,
+  onToggleSwapTile,
+  onDropOnBoard,
+  onReorderTile,
+  zoomScale,
+  zoomPanX,
+  zoomPanY,
+  onLockViewport,
+  onUnlockViewport,
+}: RackProps) {
   return (
-    <div className="rack-wrapper">
-      <svg
-        viewBox={`0 0 ${RACK_WIDTH} ${RACK_HEIGHT}`}
-        className="rack-svg"
-      >
-        {/* Empty slots */}
+    <g id="rack-area">
+      {/* Rack background */}
+      <g pointerEvents="none">
+        <rect
+          x={RACK_OFFSET_X - 12}
+          y={RACK_Y - 12}
+          width={RACK_TOTAL_W + 24}
+          height={RACK_TILE_SIZE + 24}
+          rx={12}
+          fill="var(--bg-rack)"
+          stroke="var(--border-default)"
+          strokeWidth={1.5}
+        />
         {Array.from({ length: RACK_SLOTS }, (_, i) => (
           <rect
             key={`slot-${i}`}
-            x={i * CELL_SIZE + 2}
-            y={2}
-            width={CELL_SIZE - 4}
-            height={CELL_SIZE - 4}
-            rx={4}
+            x={RACK_OFFSET_X + i * (RACK_TILE_SIZE + RACK_GAP) + 3}
+            y={RACK_Y + 3}
+            width={RACK_TILE_SIZE - 6}
+            height={RACK_TILE_SIZE - 6}
+            rx={6}
             className="rack-slot"
           />
         ))}
+      </g>
 
-        {/* Tile letters */}
-        {tiles.map((tile, i) => {
-          const isSelected = tile.id === selectedTileId;
-          const x = i * CELL_SIZE;
+      {/* Rack tiles */}
+      {rackTiles.map((tile, i) => {
+        const slotIndex = rackOrder.length > 0
+          ? rackOrder.indexOf(tile.id)
+          : i;
+        const slot = slotIndex >= 0 ? slotIndex : i;
+        const isSwapSelected = swapSelected.has(tile.id);
+
+        if (swapMode) {
+          const rx = RACK_OFFSET_X + slot * (RACK_TILE_SIZE + RACK_GAP);
+          const liftY = isSwapSelected ? -12 : 0;
           return (
             <g
               key={tile.id}
-              className={`rack-tile ${isSelected ? 'rack-tile-selected' : ''}`}
-              onClick={() => onSelectTile(isSelected ? null : tile.id)}
+              data-tile-id={tile.id}
+              className={isSwapSelected ? 'tile-swap-selected' : ''}
+              transform={`translate(${rx}, ${RACK_Y + liftY})`}
+              onClick={() => onToggleSwapTile(tile.id)}
               style={{ cursor: 'pointer' }}
             >
               <rect
-                x={x + 2}
+                width={RACK_TILE_SIZE - 4}
+                height={RACK_TILE_SIZE - 4}
+                x={2}
                 y={2}
-                width={CELL_SIZE - 4}
-                height={CELL_SIZE - 4}
-                rx={4}
+                rx={RACK_TILE_SIZE * 0.08}
                 className="tile-bg"
               />
               <text
-                x={x + CELL_SIZE / 2}
-                y={CELL_SIZE / 2 + 2}
+                x={RACK_TILE_SIZE / 2}
+                y={RACK_TILE_SIZE / 2 + 2}
                 textAnchor="middle"
                 dominantBaseline="middle"
                 className="tile-letter"
+                fontSize={RACK_TILE_SIZE * 0.48}
               >
                 {tile.letter}
               </text>
               {!tile.isBlank && (
                 <text
-                  x={x + CELL_SIZE - 8}
-                  y={CELL_SIZE - 8}
+                  x={RACK_TILE_SIZE - 6}
+                  y={RACK_TILE_SIZE - 6}
                   textAnchor="end"
                   className="tile-points"
+                  fontSize={RACK_TILE_SIZE * 0.2}
                 >
                   {tile.points}
                 </text>
               )}
+              {isSwapSelected && (
+                <text
+                  x={RACK_TILE_SIZE - 12}
+                  y={18}
+                  textAnchor="middle"
+                  className="tile-swap-badge"
+                >
+                  ×
+                </text>
+              )}
             </g>
           );
-        })}
-      </svg>
-    </div>
+        }
+
+        return (
+          <RackDraggableTile
+            key={tile.id}
+            id={tile.id}
+            letter={tile.letter}
+            points={tile.points}
+            isBlank={tile.isBlank}
+            slotIndex={slot}
+            svgRef={svgRef}
+            zoomScale={zoomScale}
+            zoomPanX={zoomPanX}
+            zoomPanY={zoomPanY}
+            onLockViewport={onLockViewport}
+            onUnlockViewport={onUnlockViewport}
+            onDropOnBoard={(row, col) => onDropOnBoard(tile.id, row, col)}
+            onReorderTile={(toSlot) => onReorderTile(tile.id, toSlot)}
+          />
+        );
+      })}
+    </g>
   );
 }

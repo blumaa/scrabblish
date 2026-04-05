@@ -83,24 +83,3 @@
   pointer-events: none;
 }
 
-/* Rack slot */
-.rack-slot {
-  fill: var(--color-rack);
-  stroke: var(--border-default);
-  stroke-width: 1;
-  stroke-dasharray: 4 2;
-}
-
-/* Swap mode selected tile */
-.tile-swap-selected .tile-bg {
-  fill: var(--amber-dim);
-  stroke: var(--amber);
-  stroke-width: 2.5;
-}
-
-.tile-swap-badge {
-  font-size: 18px;
-  font-weight: 700;
-  fill: var(--color-error);
-  pointer-events: none;
-}

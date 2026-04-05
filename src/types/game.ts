@@ -75,7 +75,7 @@ export interface GameState {
   // Client-only
   pendingTiles: PlacedTile[];
   rackOrder: string[]; // original tile IDs in rack order, for recall reinsertion
-  lastPlay: { playerName: string; words: string[]; score: number } | null;
+  lastPlay: { playerName: string; words: string[]; score: number; tiles: Position[] } | null;
   dictionaryLoaded: boolean;
   syncing: boolean;
   error: string | null;
@@ -96,7 +96,7 @@ export type GameAction =
   | { type: 'SHUFFLE_RACK' }
 
   // Turn results (from server)
-  | { type: 'SET_LAST_PLAY'; playerName: string; words: string[]; score: number }
+  | { type: 'SET_LAST_PLAY'; playerName: string; words: string[]; score: number; tiles: Position[] }
   | { type: 'MOVE_SUBMITTED'; updatedHand: Tile[]; moveNumber: number }
   | { type: 'MOVE_ERROR'; error: string }
 

@@ -9,15 +9,9 @@ import { useBoardViewport } from './useBoardViewport';
 import type { Board as BoardType, PlacedTile, Tile, Language } from '../../types/game';
 import type { ValidatedWord } from '../../lib/word-validation';
 import { DraggableTile } from './DraggableTile';
+import { Rack } from '../rack/Rack';
+import { TOTAL_HEIGHT } from '../rack/rack-constants';
 import './Board.css';
-
-const RACK_TILE_SIZE = 90;
-const RACK_GAP = 8;
-const RACK_SLOTS = 7;
-const RACK_TOTAL_W = RACK_SLOTS * RACK_TILE_SIZE + (RACK_SLOTS - 1) * RACK_GAP;
-const RACK_OFFSET_X = (BOARD_PX - RACK_TOTAL_W) / 2;
-const RACK_Y = BOARD_PX + 20;
-const TOTAL_HEIGHT = BOARD_PX + RACK_TILE_SIZE + 50;
 
 interface BoardProps {
   svgRef: RefObject<SVGSVGElement | null>;
@@ -36,6 +30,8 @@ interface BoardProps {
   committedWords?: { word: string; languages: string[]; tiles: { row: number; col: number }[] }[];
   gameLanguages?: Language[];
   rackOrder?: string[]; // original tile IDs in order, for stable slot positions
+  onReorderTile?: (tileId: string, toSlotIndex: number) => void;
+  animatingTileKeys?: Set<string>;
 }
 
 const SQUARES = Array.from({ length: BOARD_SIZE }, (_, row) =>
@@ -59,6 +55,8 @@ export function Board({
   committedWords = [],
   gameLanguages = [],
   rackOrder = [],
+  onReorderTile,
+  animatingTileKeys,
 }: BoardProps) {
   const viewport = useBoardViewport();
   const boardGroupRef = useRef<SVGGElement>(null);
@@ -183,7 +181,13 @@ export function Board({
             <g id="committed-tiles">
               {board.flatMap((row, r) =>
                 row.map((tile, c) =>
-                  tile ? <PlacedTileComponent key={`${r}-${c}`} tile={tile} /> : null
+                  tile ? (
+                    <PlacedTileComponent
+                      key={`${r}-${c}`}
+                      tile={tile}
+                      hidden={animatingTileKeys?.has(`${r}-${c}`) ?? false}
+                    />
+                  ) : null
                 )
               )}
             </g>
@@ -218,117 +222,21 @@ export function Board({
         </g>
 
         {/* Rack area — NOT affected by zoom/pan */}
-        <g id="rack-area">
-          {/* Rack background */}
-          <g pointerEvents="none">
-            <rect
-              x={RACK_OFFSET_X - 12}
-              y={RACK_Y - 12}
-              width={RACK_TOTAL_W + 24}
-              height={RACK_TILE_SIZE + 24}
-              rx={12}
-              fill="var(--bg-rack)"
-              stroke="var(--border-default)"
-              strokeWidth={1.5}
-            />
-            {Array.from({ length: RACK_SLOTS }, (_, i) => (
-              <rect
-                key={`slot-${i}`}
-                x={RACK_OFFSET_X + i * (RACK_TILE_SIZE + RACK_GAP) + 3}
-                y={RACK_Y + 3}
-                width={RACK_TILE_SIZE - 6}
-                height={RACK_TILE_SIZE - 6}
-                rx={6}
-                className="rack-slot"
-              />
-            ))}
-          </g>
-
-          {/* Rack tiles */}
-          {rackTiles.map((tile, i) => {
-            // Use original slot index so tiles don't shift when others are placed on board
-            const slotIndex = rackOrder.length > 0
-              ? rackOrder.indexOf(tile.id)
-              : i;
-            const slot = slotIndex >= 0 ? slotIndex : i;
-            const rx = RACK_OFFSET_X + slot * (RACK_TILE_SIZE + RACK_GAP);
-            const isSwapSelected = swapSelected?.has(tile.id) ?? false;
-
-            if (swapMode) {
-              const liftY = isSwapSelected ? -12 : 0;
-              return (
-                <g
-                  key={tile.id}
-                  data-tile-id={tile.id}
-                  className={isSwapSelected ? 'tile-swap-selected' : ''}
-                  transform={`translate(${rx}, ${RACK_Y + liftY})`}
-                  onClick={() => onToggleSwapTile?.(tile.id)}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <rect
-                    width={RACK_TILE_SIZE - 4}
-                    height={RACK_TILE_SIZE - 4}
-                    x={2}
-                    y={2}
-                    rx={RACK_TILE_SIZE * 0.08}
-                    className="tile-bg"
-                  />
-                  <text
-                    x={RACK_TILE_SIZE / 2}
-                    y={RACK_TILE_SIZE / 2 + 2}
-                    textAnchor="middle"
-                    dominantBaseline="middle"
-                    className="tile-letter"
-                    fontSize={RACK_TILE_SIZE * 0.48}
-                  >
-                    {tile.letter}
-                  </text>
-                  {!tile.isBlank && (
-                    <text
-                      x={RACK_TILE_SIZE - 6}
-                      y={RACK_TILE_SIZE - 6}
-                      textAnchor="end"
-                      className="tile-points"
-                      fontSize={RACK_TILE_SIZE * 0.2}
-                    >
-                      {tile.points}
-                    </text>
-                  )}
-                  {isSwapSelected && (
-                    <text
-                      x={RACK_TILE_SIZE - 12}
-                      y={18}
-                      textAnchor="middle"
-                      className="tile-swap-badge"
-                    >
-                      ×
-                    </text>
-                  )}
-                </g>
-              );
-            }
-
-            return (
-              <DraggableTile
-                key={tile.id}
-                id={tile.id}
-                letter={tile.letter}
-                points={tile.points}
-                isBlank={tile.isBlank}
-                initialX={rx + RACK_TILE_SIZE / 2}
-                initialY={RACK_Y + RACK_TILE_SIZE / 2}
-                tileSize={RACK_TILE_SIZE}
-                svgRef={svgRef}
-                zoomScale={viewport.scale}
-                zoomPanX={viewport.panX}
-                zoomPanY={viewport.panY}
-                onLockViewport={viewport.lockDrag}
-                onUnlockViewport={viewport.unlockDrag}
-                onDrop={(row, col) => handleDrop(tile.id, row, col)}
-              />
-            );
-          })}
-        </g>
+        <Rack
+          svgRef={svgRef}
+          rackTiles={rackTiles}
+          rackOrder={rackOrder}
+          swapMode={swapMode}
+          swapSelected={swapSelected ?? new Set()}
+          onToggleSwapTile={(id) => onToggleSwapTile?.(id)}
+          onDropOnBoard={(tileId, row, col) => handleDrop(tileId, row, col)}
+          onReorderTile={(tileId, toSlot) => onReorderTile?.(tileId, toSlot)}
+          zoomScale={viewport.scale}
+          zoomPanX={viewport.panX}
+          zoomPanY={viewport.panY}
+          onLockViewport={viewport.lockDrag}
+          onUnlockViewport={viewport.unlockDrag}
+        />
 
         {/* Pending tiles — rendered AFTER rack so they appear on top when dragged */}
         <g ref={pendingShakeRef}>
